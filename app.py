@@ -488,7 +488,8 @@ elif tool == TOOLS[9]:
 
 		# Step 3: Conditional rules
             st.subheader("Step 3: Conditional rules (optional)")
-            st.caption("Set values based on IF / THEN / ELSE logic. Rules run on your **output** columns (after mapping).")
+            st.caption("Check your **source/input** columns, then write values into your **output** columns.")
+ st.info("\U0001f4a1 **Example:** IF source column `STS26 Ticket Type` contains `Attendee` → THEN set output column `GLOBAL_Previous event attendance` to `;Shoptalk Luxe 2026`")
             st.warning("\u26a0\ufe0f **Rule order matters:** Later rules can overwrite values set by earlier rules on the same output column.")
 
             num_rules = st.number_input("Number of conditional rules", 0, 20, 0, key="mig_nrules")
@@ -496,13 +497,13 @@ elif tool == TOOLS[9]:
             for i in range(int(num_rules)):
                 st.markdown(f"---\n**Rule {i+1}**")
                 c1, c2, c3 = st.columns(3)
-                r_col = c1.selectbox("IF column", tgt_cols, key=f"mig_rcol_{i}")
+                r_col = c1.selectbox("IF source column", src_cols, key=f"mig_rcol_{i}")
                 r_op = c2.selectbox("Operator", ["equals", "contains", "not_empty", "is_empty"], key=f"mig_rop_{i}")
                 r_val = c3.text_input("Value", key=f"mig_rval_{i}",
                                        disabled=(r_op in ("not_empty", "is_empty")))
 
                 c4, c5 = st.columns(2)
-                r_out_col = c4.selectbox("THEN set column", tgt_cols, key=f"mig_routcol_{i}")
+                r_out_col = c4.selectbox("THEN set output column", tgt_cols, key=f"mig_routcol_{i}")
                 r_out_val = c5.text_input("THEN value", key=f"mig_routval_{i}")
 
                 c6, c7 = st.columns(2)
