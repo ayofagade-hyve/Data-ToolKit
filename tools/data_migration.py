@@ -1,3 +1,4 @@
+"""Full Data Migration Pipeline — remap, fixed values, conditional rules, classify, standardise."""
 import pandas as pd
 from tools.remap_columns import remap_columns
 from tools.classify_jobs import classify_jobs, classify_org_types
@@ -5,128 +6,215 @@ from tools.value_standardizer import standardize_values
 from utils.io_helpers import generate_summary
 
 
-# ──────────────────────────────────────────────
-# Conditional Rules Engine
-# ──────────────────────────────────────────────
+def append_semicolon(existing, new_value):
+    """Append new_value with leading ; and ; separator. Skips duplicates."""
+    existing = str(existing or "").strip()
+    new_value = str(new_value or "").strip()
+    if not new_value:
+        return existing
+    if not existing:
+        return f";{new_value}"
+    parts = [p.strip() for p in existing.split(";") if p.strip()]
+    if new_value in parts:
+        return existing
+    return f"{existing};{new_value}"
+
 
 def apply_conditional_rules(df, rules):
     """
     Apply IF / THEN / ELSE rules to a DataFrame.
 
-    Each rule is a dict:
-        column          – source column to check
-        condition       – one of: equals, not equals, contains, does not contain,
-                          starts with, is blank, is not blank
-        value           – the value to compare against (ignored for is blank / is not blank)
-        output_column   – the column to write the result into
-        output_value    – value to set when the condition is TRUE
-        fallback_value  – value to set when the condition is FALSE (if empty, row is left unchanged)
+    Each rule dict:
+        col       — column to check (must be a TARGET/output column)
+        operator  — 'equals', 'contains', 'not_empty', 'is_empty'
+        value     — value to compare against
+        out_col   — output column to write to
+        out_val   — value to write when TRUE
+        else_val  — value to write when FALSE (optional)
+        mode      — 'overwrite' | 'fill_blank' | 'append_semicolon'
+
+    Returns: (df, applied_report_list, skipped_report_list)
     """
     result = df.copy()
+    applied = []
+    skipped = []
 
-    for rule in rules:
-        col   = rule.get("column", "")
-        cond  = rule.get("condition", "")
-        val   = str(rule.get("value", "")).strip()
-        o_col = rule.get("output_column", "")
-        o_val = rule.get("output_value", "")
-        fb    = rule.get("fallback_value", "")
+    for i, rule in enumerate(rules, 1):
+        col = rule.get("col", "")
+        operator = rule.get("operator", "equals")
+        value = rule.get("value", "")
+        out_col = rule.get("out_col", "")
+        out_val = rule.get("out_val", "")
+        else_val = rule.get("else_val", "")
+        mode = rule.get("mode", "overwrite")
 
-        if not col or not o_col or col not in result.columns:
+        if not col or not out_col:
+            skipped.append({
+                "Rule #": i,
+                "Reason": "IF column or output column is blank",
+                "Details": f"IF '{col}' -> THEN '{out_col}'"
+            })
             continue
 
-        series = result[col].fillna("").astype(str)
+        if col not in result.columns:
+            available = ", ".join(list(result.columns)[:10])
+            skipped.append({
+                "Rule #": i,
+                "Reason": f"IF column '{col}' not found in output data",
+                "Details": f"Available: {available}..."
+            })
+            continue
 
-        # Build boolean mask
-        if cond == "equals":
-            mask = series.str.lower() == val.lower()
-        elif cond == "not equals":
-            mask = series.str.lower() != val.lower()
-        elif cond == "contains":
-            mask = series.str.lower().str.contains(val.lower(), na=False)
-        elif cond == "does not contain":
-            mask = ~series.str.lower().str.contains(val.lower(), na=False)
-        elif cond == "starts with":
-            mask = series.str.lower().str.startswith(val.lower())
-        elif cond == "is blank":
-            mask = series.str.strip() == ""
-        elif cond == "is not blank":
-            mask = series.str.strip() != ""
+        if out_col not in result.columns:
+            result[out_col] = ""
+
+        series = result[col].fillna("").astype(str).str.strip()
+
+        if operator == "equals":
+            mask = series.str.lower() == str(value).strip().lower()
+        elif operator == "contains":
+            mask = series.str.lower().str.contains(str(value).strip().lower(), na=False)
+        elif operator == "not_empty":
+            mask = series != ""
+        elif operator == "is_empty":
+            mask = series == ""
+        else:
+            skipped.append({
+                "Rule #": i,
+                "Reason": f"Unknown operator '{operator}'",
+                "Details": f"IF '{col}' {operator} '{value}'"
+            })
+            continue
+
+        matched = int(mask.sum())
+        unmatched = int((~mask).sum())
+
+        if out_val:
+            if mode == "overwrite":
+                result.loc[mask, out_col] = out_val
+            elif mode == "fill_blank":
+                blank = mask & (result[out_col].fillna("").astype(str).str.strip() == "")
+                result.loc[blank, out_col] = out_val
+            elif mode == "append_semicolon":
+                result.loc[mask, out_col] = result.loc[mask, out_col].apply(
+                    lambda x: append_semicolon(x, out_val))
+
+        if else_val:
+            if mode == "overwrite":
+                result.loc[~mask, out_col] = else_val
+            elif mode == "fill_blank":
+                blank = (~mask) & (result[out_col].fillna("").astype(str).str.strip() == "")
+                result.loc[blank, out_col] = else_val
+            elif mode == "append_semicolon":
+                result.loc[~mask, out_col] = result.loc[~mask, out_col].apply(
+                    lambda x: append_semicolon(x, else_val))
+
+        applied.append({
+            "Rule #": i,
+            "Condition": f"IF '{col}' {operator} '{value}'",
+            "THEN": f"'{out_col}' = '{out_val}'",
+            "ELSE": f"'{out_col}' = '{else_val}'" if else_val else "(no else)",
+            "Mode": mode,
+            "Rows matched": f"{matched:,}",
+            "Rows unmatched": f"{unmatched:,}",
+        })
+
+    return result, applied, skipped
+
+
+def split_suppression(df, suppression_rules):
+    """
+    Split dataframe into normal rows and suppression/opt-out rows.
+    Returns: (normal_df, suppressed_df, info_dict)
+    """
+    if not suppression_rules:
+        return df, pd.DataFrame(columns=df.columns), {"Suppressed": "0"}
+
+    combined_mask = pd.Series([False] * len(df), index=df.index)
+
+    for rule in suppression_rules:
+        col = rule.get("col", "")
+        operator = rule.get("operator", "equals")
+        value = rule.get("value", "")
+        if col not in df.columns:
+            continue
+        series = df[col].fillna("").astype(str).str.strip()
+        if operator == "equals":
+            mask = series.str.lower() == str(value).strip().lower()
+        elif operator == "contains":
+            mask = series.str.lower().str.contains(str(value).strip().lower(), na=False)
+        elif operator == "not_empty":
+            mask = series != ""
         else:
             continue
+        combined_mask = combined_mask | mask
 
-        # Apply output value where condition is met
-        result.loc[mask, o_col] = o_val
+    suppressed = df[combined_mask].copy().reset_index(drop=True)
+    normal = df[~combined_mask].copy().reset_index(drop=True)
+    return normal, suppressed, {"Suppressed": f"{len(suppressed):,}", "Kept": f"{len(normal):,}"}
 
-        # Apply fallback where condition is NOT met (only if a fallback was given)
-        if fb:
-            result.loc[~mask, o_col] = fb
-
-    return result
-
-
-# ──────────────────────────────────────────────
-# Full Migration Pipeline
-# ──────────────────────────────────────────────
 
 def run_migration(source_df, target_columns, column_mapping, fixed_values=None,
                   conditional_rules=None, classify=True, title_col_name=None,
-                  standardize_configs=None):
+                  standardize_configs=None, suppression_rules=None):
     """
     Complete migration pipeline:
-      1. Remap columns
-      2. Apply fixed (static) values
-      3. Apply conditional rules  ← NEW
-      4. Auto-classify seniority / job function / org type
-      5. Standardise values
+    1. Remap columns (source -> target structure)
+    2. Apply fixed (static) values
+    3. Apply conditional IF/THEN/ELSE rules (on TARGET columns)
+    4. Auto-classify seniority / job function / org type
+    5. Standardise values against user rules
+    6. Split suppression/opt-out rows into separate output
+
+    Returns: (result, suppressed, std_reports_df, rule_applied, rule_skipped, summary)
     """
-    fixed_values        = fixed_values or {}
-    conditional_rules   = conditional_rules or []
+    fixed_values = fixed_values or {}
+    conditional_rules = conditional_rules or []
     standardize_configs = standardize_configs or []
+    suppression_rules = suppression_rules or []
+    steps = []
 
-    # Step 1 — Column remapping (+ fixed values are injected here)
+    # Step 1: Remap columns
     result, _ = remap_columns(source_df, target_columns, column_mapping, fixed_values)
-    steps = ["Column remapping"]
+    mapped_count = sum(1 for tc in target_columns if column_mapping.get(tc))
+    fixed_count = sum(1 for v in fixed_values.values() if v)
+    steps.append(f"Column mapping ({mapped_count} mapped, {fixed_count} fixed)")
 
-    # Step 2 — Conditional rules
+    # Step 2: Conditional rules (TARGET columns)
+    rule_applied = []
+    rule_skipped = []
     if conditional_rules:
-        result = apply_conditional_rules(result, conditional_rules)
-        steps.append(f"Conditional rules ({len(conditional_rules)} rules)")
+        result, rule_applied, rule_skipped = apply_conditional_rules(result, conditional_rules)
+        steps.append(f"Conditional rules ({len(rule_applied)} applied, {len(rule_skipped)} skipped)")
 
-    # Step 3 — Auto-classification
+    # Step 3: Auto-classify
     if classify and title_col_name and title_col_name in result.columns:
         result, _ = classify_jobs(result, title_col_name)
         result, _ = classify_org_types(result)
-        steps.append("Auto-classification")
+        steps.append("Auto-classification (seniority, function, org type)")
 
-    # Step 4 — Value standardisation
+    # Step 4: Standardise values
     std_reports = []
     for cfg in standardize_configs:
         col = cfg["col"]
         if col in result.columns:
             result, report, _ = standardize_values(
-                result, col, cfg["standards_df"],
-                cfg["standard_col"], cfg.get("aliases_col"),
-                cfg.get("threshold", 80),
-            )
+                result, col, cfg["standards_df"], cfg["standard_col"],
+                cfg.get("aliases_col"), cfg.get("threshold", 80))
             std_reports.append((col, report))
             steps.append(f"Standardised: {col}")
 
-    all_reports = (
-        pd.concat([r.assign(Column=c) for c, r in std_reports], ignore_index=True)
-        if std_reports
-        else pd.DataFrame()
-    )
+    # Step 5: Split suppression
+    suppressed = pd.DataFrame(columns=result.columns)
+    if suppression_rules:
+        result, suppressed, sup_info = split_suppression(result, suppression_rules)
+        steps.append(f"Suppression split ({sup_info['Suppressed']} separated)")
 
-    extra = {"Steps": ", ".join(steps)}
-    if fixed_values:
-        extra["Fixed values"] = ", ".join(
-            f"{k}={v}" for k, v in fixed_values.items() if v
-        )
-    if conditional_rules:
-        extra["Conditional rules"] = f"{len(conditional_rules)} rule(s) applied"
+    all_std_reports = pd.concat(
+        [r.assign(Column=c) for c, r in std_reports], ignore_index=True
+    ) if std_reports else pd.DataFrame()
 
-    summary = generate_summary(
-        "Data Migration Pipeline", len(source_df), len(result), extra_info=extra
-    )
-    return result, all_reports, summary
+    extra = {"Steps": " -> ".join(steps)}
+    summary = generate_summary("Full Data Migration", len(source_df), len(result), extra_info=extra)
+
+    return result, suppressed, all_std_reports, rule_applied, rule_skipped, summary
