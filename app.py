@@ -486,7 +486,7 @@ elif tool == TOOLS[9]:
                 elif choice != "-- Leave empty --":
                     mapping[tc] = choice
 
-            # Step 3: Conditional rules
+		# Step 3: Conditional rules
             st.subheader("Step 3: Conditional rules (optional)")
             st.caption("Set values based on IF / THEN / ELSE logic. Rules run on your **output** columns (after mapping).")
             st.warning("\u26a0\ufe0f **Rule order matters:** Later rules can overwrite values set by earlier rules on the same output column.")
