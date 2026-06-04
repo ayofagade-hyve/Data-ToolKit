@@ -20,22 +20,25 @@ def append_semicolon(existing, new_value):
     return f"{existing};{new_value}"
 
 
-def apply_conditional_rules(df, rules):
+def apply_conditional_rules(result_df, source_df, rules):
     """
-    Apply IF / THEN / ELSE rules to a DataFrame.
-
+    Apply IF / THEN / ELSE rules.
+    
+    IF conditions check SOURCE columns (the original input data).
+    THEN/ELSE write into TARGET columns (the remapped output data).
+    
     Each rule dict:
-        col       — column to check (must be a TARGET/output column)
+        col       — SOURCE column to check (IF column)
         operator  — 'equals', 'contains', 'not_empty', 'is_empty'
         value     — value to compare against
-        out_col   — output column to write to
+        out_col   — TARGET/output column to write to
         out_val   — value to write when TRUE
         else_val  — value to write when FALSE (optional)
         mode      — 'overwrite' | 'fill_blank' | 'append_semicolon'
 
-    Returns: (df, applied_report_list, skipped_report_list)
+    Returns: (result_df, applied_report_list, skipped_report_list)
     """
-    result = df.copy()
+    result = result_df.copy()
     applied = []
     skipped = []
 
@@ -56,19 +59,22 @@ def apply_conditional_rules(df, rules):
             })
             continue
 
-        if col not in result.columns:
-            available = ", ".join(list(result.columns)[:10])
+        # IF column must exist in SOURCE data
+        if col not in source_df.columns:
+            available = ", ".join(list(source_df.columns)[:10])
             skipped.append({
                 "Rule #": i,
-                "Reason": f"IF column '{col}' not found in output data",
-                "Details": f"Available: {available}..."
+                "Reason": f"IF column '{col}' not found in source data",
+                "Details": f"Available source columns: {available}..."
             })
             continue
 
+        # THEN column: create in output if it doesn't exist
         if out_col not in result.columns:
             result[out_col] = ""
 
-        series = result[col].fillna("").astype(str).str.strip()
+        # Build condition mask from SOURCE data
+        series = source_df[col].fillna("").astype(str).str.strip()
 
         if operator == "equals":
             mask = series.str.lower() == str(value).strip().lower()
@@ -89,6 +95,7 @@ def apply_conditional_rules(df, rules):
         matched = int(mask.sum())
         unmatched = int((~mask).sum())
 
+        # Apply THEN value to OUTPUT column
         if out_val:
             if mode == "overwrite":
                 result.loc[mask, out_col] = out_val
@@ -99,6 +106,7 @@ def apply_conditional_rules(df, rules):
                 result.loc[mask, out_col] = result.loc[mask, out_col].apply(
                     lambda x: append_semicolon(x, out_val))
 
+        # Apply ELSE value to OUTPUT column
         if else_val:
             if mode == "overwrite":
                 result.loc[~mask, out_col] = else_val
@@ -111,9 +119,9 @@ def apply_conditional_rules(df, rules):
 
         applied.append({
             "Rule #": i,
-            "Condition": f"IF '{col}' {operator} '{value}'",
-            "THEN": f"'{out_col}' = '{out_val}'",
-            "ELSE": f"'{out_col}' = '{else_val}'" if else_val else "(no else)",
+            "Condition": f"IF source '{col}' {operator} '{value}'",
+            "THEN": f"output '{out_col}' = '{out_val}'",
+            "ELSE": f"output '{out_col}' = '{else_val}'" if else_val else "(no else)",
             "Mode": mode,
             "Rows matched": f"{matched:,}",
             "Rows unmatched": f"{unmatched:,}",
@@ -184,7 +192,7 @@ def run_migration(source_df, target_columns, column_mapping, fixed_values=None,
     rule_applied = []
     rule_skipped = []
     if conditional_rules:
-        result, rule_applied, rule_skipped = apply_conditional_rules(result, conditional_rules)
+        result, rule_applied, rule_skipped = apply_conditional_rules(result, source_df, conditional_rules)
         steps.append(f"Conditional rules ({len(rule_applied)} applied, {len(rule_skipped)} skipped)")
 
     # Step 3: Auto-classify
