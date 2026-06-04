@@ -5,7 +5,6 @@ from utils.io_helpers import load_csv, to_csv_bytes, generate_summary
 
 st.set_page_config(page_title="Data Cleaning Toolkit", page_icon="\U0001f9f9", layout="wide")
 
-# Sorted alphabetically (after Home)
 TOOLS = [
     "\U0001f3e0 Home",
     "\U0001f3e2 Classify Organisation Type",
@@ -74,200 +73,125 @@ def get_target_columns(key_prefix):
 # ══════════════════════════════════════════════════════════
 if tool == TOOLS[0]:
     st.title("\U0001f9f9 Data Cleaning & File Automation Toolkit")
-
     st.markdown("""
-Welcome! This toolkit gives you **18 powerful data-cleaning tools** in one simple web app.
-No coding needed — just upload your CSV, pick a tool, configure it, and download clean results.
+    Welcome! This toolkit gives you **18 powerful data-cleaning tools** in one simple web app.
+    No coding needed — just upload your CSV, pick a tool, configure it, and download clean results.
+    """)
 
----
-
-### \U0001f680 Getting Started
-1. **Pick a tool** from the sidebar on the left
-2. **Upload your CSV** file
-3. **Configure** the options
-4. **Download** your clean results
-
----
-
-### \U0001f4e6 All Tools at a Glance
-""")
-
+    st.markdown("---")
+    st.subheader("\U0001f680 Getting Started")
     st.markdown("""
-#### \U0001f3e2 Classify Organisation Type
-**What it does:** Automatically tags each company with an organisation type (e.g. Bank, Fintech,
-Payment Provider, Regulator) based on industry, company name, job titles, and other available fields.
+    1. **Pick a tool** from the sidebar on the left
+    2. **Upload your CSV** file
+    3. **Configure** the options
+    4. **Click Run** to process
+    5. **Preview** the results
+    6. **Download** your clean output
 
-> *Example: You have 5,000 attendees and need to know how many are from banks vs fintechs vs regulators
-— this auto-tags them all in seconds.*
+    > **Tip:** Your original files are never modified. Every tool exports a new, clean file.
+    """)
 
----
+    st.markdown("---")
+    st.subheader("\U0001f4e6 All Tools at a Glance")
 
-#### \U0001f4bc Classify Seniority & Job Function
-**What it does:** Reads each person's job title and automatically assigns a **seniority level**
-(C-level, VP, Director, Manager, Associate, Other) and a **job function**
-(Sales, Marketing, IT, Finance, Legal, HR, Operations, Product, etc.).
+    tool_cards = [
+        ("\U0001f3e2", "Classify Organisation Type",
+         "Automatically tags each company with an organisation type (e.g. Bank, Fintech, Insurance, VC, Retailer) based on industry, company name, job titles, and other available fields.",
+         "You have 5,000 attendees and need to know how many are from banks vs fintechs vs regulators — this auto-tags them all in seconds."),
 
-> *Example: You need to filter an event list to only VPs and above in Sales — this classifies
-everyone so you can filter instantly.*
+        ("\U0001f4bc", "Classify Seniority & Function",
+         "Reads each person's job title and automatically assigns a **seniority level** (C-level, VP, Director, Manager, Associate, Other) and a **job function** (Sales, Marketing, IT, Finance, Legal, HR, Operations, Product, etc.).",
+         "You need to filter an event list to only VPs and above in Sales — this classifies everyone so you can filter instantly."),
 
----
+        ("\U0001f500", "Column Remapper",
+         "Maps columns from a source CSV into a different output structure. For each output column, you pick which source column fills it — or set a custom default value. Auto-matches columns with the same name.",
+         "Your event platform exports 'Organisation' but your CRM needs 'Company Name' — this remaps it without manual copy-pasting."),
 
-#### \U0001f500 Column Remapper
-**What it does:** Maps columns from a source CSV into a different output structure. For each output
-column, you pick which source column fills it — or set a custom default value.
-Columns with matching names are auto-matched.
+        ("\U0001f4ce", "Combine CSVs",
+         "Merges multiple CSV files into a single file, stacking all rows together. Handles mismatched columns gracefully.",
+         "You have 6 monthly attendee exports and need them all in one master file — just upload them all and combine."),
 
-> *Example: Your event platform exports "Organisation" but your CRM needs "Company Name"
-— this remaps it without manual copy-pasting.*
+        ("\u2696\ufe0f", "Compare & Remove",
+         "Compares a column in your source file against a column in a lookup file, and removes any matching rows from the source.",
+         "You have a 'do not contact' list and need to remove those people from your outreach file — upload both and it strips them out."),
 
----
+        ("\U0001f50d", "Deduplicate vs Master List",
+         "Compares a new contact list against your master database and removes anyone who already exists. Matches on **4 keys**: Email, LinkedIn URL, Name+Company, Name+Website.",
+         "Before importing new leads into your CRM, check them against your existing database to avoid duplicates."),
 
-#### \U0001f4ce Combine CSVs
-**What it does:** Merges multiple CSV files into a single file, stacking all rows together.
-Handles mismatched columns gracefully.
+        ("\U0001f310", "Extract Company Domains",
+         "Finds the most common non-personal email domain per company. Ignores personal domains like gmail.com, yahoo.com, hotmail.com.",
+         "You need a list of company domains for ad targeting — this pulls the corporate domain from your contact emails."),
 
-> *Example: You have 6 monthly attendee exports and need them all in one master file
-— just upload them all and combine.*
+        ("\U0001f524", "Fix Encoding (Mojibake)",
+         "Repairs garbled/broken characters caused by encoding mismatches. Fixes broken accented characters back to their correct form.",
+         "Your CSV export has names showing garbled characters — this fixes all of them automatically."),
 
----
+        ("\U0001f504", "Full Data Migration",
+         "A complete data transformation pipeline — all in one step. Combines **6 stages**: column remapping, fixed values, conditional IF/THEN/ELSE rules, auto-classification, value standardisation, and suppression splitting.",
+         "You receive a raw attendee export and need to remap it into CRM format, tag attendees by region, auto-classify job titles, standardise company names, and separate opt-outs — all in one click."),
 
-#### \u2696\ufe0f Compare & Remove
-**What it does:** Compares a column in your source file against a column in a lookup file, and
-removes any rows from the source that have a match in the lookup.
+        ("\U0001f501", "Fuzzy Duplicate Finder",
+         "Scans a single column for near-duplicate values using fuzzy string matching (Levenshtein distance). Flags each row as 'Unique' or 'Duplicate' with the match percentage.",
+         "You suspect your company list has duplicates like 'JP Morgan' and 'JPMorgan Chase' — this finds and flags them."),
 
-> *Example: You have a "do not contact" list and need to remove those people from your
-outreach file — upload both and it strips them out.*
+        ("\U0001f50e", "LinkedIn Search Links",
+         "Generates a clickable LinkedIn people-search URL for each person, using their name, job title, and company as search keywords.",
+         "You have a list of 200 prospects and need to quickly find their LinkedIn profiles — this builds a search link for each one."),
 
----
+        ("\U0001f517", "Merge / Split Columns",
+         "**Merge** combines 2+ columns into one new column with a separator. **Split** breaks one column into multiple new columns on a separator.",
+         "Merge 'First Name' and 'Last Name' into 'Full Name', or split 'London, UK' into separate City and Country columns."),
 
-#### \U0001f50d Deduplicate vs Master List
-**What it does:** Compares a new contact list against your master database and removes anyone who
-already exists. Matches on **4 keys** (in priority order): Email, LinkedIn URL,
-First Name + Last Name + Company, First Name + Last Name + Website.
+        ("\U0001f6ab", "Remove by Keywords / Flag",
+         "**Keywords mode** removes rows where a column contains any of your specified keywords. **Flag mode** removes rows where a column exactly equals a flag value.",
+         "Remove all rows where the Job Title contains 'Student', 'Intern', or 'Retired'."),
 
-> *Example: Before importing new leads into your CRM, check them against your existing
-database to avoid duplicates.*
+        ("\U0001f9f9", "Remove Blank Rows",
+         "Deletes rows that are completely empty or contain only whitespace. Quick cleanup for messy exports.",
+         "Your CRM export has 500 blank rows scattered throughout — this strips them all out instantly."),
 
----
+        ("\U0001f464", "Standardise Names",
+         "Splits a 'Full Name' column into separate 'First Name' and 'Last Name' columns.",
+         "Your list has 'Gary Dempsey' in one column but your CRM needs First Name and Last Name separately."),
 
-#### \U0001f310 Extract Company Domains
-**What it does:** Extracts the email domain for each company by finding the most common non-personal
-domain among all contacts at that company. Ignores personal domains like gmail.com, yahoo.com, hotmail.com.
+        ("\U0001f4de", "Standardise Phone Numbers",
+         "Strips all formatting from phone numbers, keeping only digits and the + symbol.",
+         "Your data has phone numbers like '(+44) 020-7946 0958' — this normalises them all to '+4402079460958'."),
 
-> *Example: You need a list of company domains for ad targeting — this pulls the corporate
-domain from your contact emails.*
+        ("\U0001f517", "Standardise URLs",
+         "Normalises URLs by removing http://, https://, www., and trailing slashes.",
+         "You have 'https://www.google.com/' and 'google.com' — this standardises both to 'google.com'."),
 
----
+        ("\U0001f3af", "Value Standardiser",
+         "Matches raw, messy values against a list of standard terms you define. Uses exact match, keyword match, and fuzzy match (Levenshtein distance).",
+         "Your Country column has 'UK', 'United Kingdom', 'england', 'Great Britain' — upload a standards list and it maps them all to 'United Kingdom'."),
+    ]
 
-#### \U0001f524 Fix Encoding (Mojibake)
-**What it does:** Repairs garbled/broken characters caused by encoding mismatches.
-Fixes broken accented characters back to their correct form.
+    for i in range(0, len(tool_cards), 3):
+        cols = st.columns(3)
+        for j, col in enumerate(cols):
+            if i + j < len(tool_cards):
+                emoji, name, desc, example = tool_cards[i + j]
+                with col:
+                    with st.container(border=True):
+                        st.markdown(f"### {emoji} {name}")
+                        st.markdown(desc)
+                        st.caption(f"\U0001f4a1 {example}")
 
-> *Example: Your CSV export has names showing garbled characters — this fixes all
-of them automatically.*
-""")
-
+    st.markdown("---")
+    st.subheader("\U0001f4a1 Tips")
     st.markdown("""
-#### \U0001f504 Full Data Migration
-**What it does:** A complete data transformation pipeline — all in one step. Combines **5 stages**:
-column remapping, fixed values, **conditional IF/THEN/ELSE rules** (NEW!), auto-classification, and
-value standardisation into a single workflow.
-
-> *Example: You receive a raw attendee export and need to remap it into CRM format,
-tag UK attendees as "Domestic" and everyone else as "International", auto-classify job
-titles, and standardise company names — all in one click.*
-
----
-
-#### \U0001f501 Fuzzy Duplicate Finder
-**What it does:** Scans a single column for near-duplicate values using fuzzy string matching
-(Levenshtein distance). Flags each row as "Unique" or "Duplicate" with the match percentage and
-which row it matched against.
-
-> *Example: You suspect your company list has duplicates like "JP Morgan" and "JPMorgan Chase"
-— this finds and flags them.*
-
----
-
-#### \U0001f50e LinkedIn Search Links
-**What it does:** Generates a clickable LinkedIn people-search URL for each person, using their
-name, job title, and company as search keywords.
-
-> *Example: You have a list of 200 prospects and need to quickly find their LinkedIn profiles
-— this builds a search link for each one.*
-
----
-
-#### \U0001f517 Merge / Split Columns
-**What it does:** Two modes:
-- **Merge:** Combine 2+ columns into one new column with a separator
-- **Split:** Break one column into multiple new columns on a separator
-
-> *Example: You need to merge "First Name" and "Last Name" into a "Full Name" column,
-or split "London, UK" into separate City and Country columns.*
-
----
-
-#### \U0001f6ab Remove by Keywords / Flag
-**What it does:** Two modes:
-- **Keywords mode:** Removes rows where a column contains any of your specified keywords
-- **Flag mode:** Removes rows where a column exactly equals a flag value
-
-> *Example: Remove all rows where the Job Title contains "Student", "Intern", or "Retired".*
-
----
-
-#### \U0001f9f9 Remove Blank Rows
-**What it does:** Deletes rows that are completely empty or contain only whitespace.
-Quick cleanup for messy exports.
-
-> *Example: Your CRM export has 500 blank rows scattered throughout — this strips them
-all out instantly.*
-
----
-
-#### \U0001f464 Standardise Names
-**What it does:** Splits a "Full Name" column into separate "First Name" and "Last Name" columns.
-Handles prefixes, suffixes, and multi-part names.
-
-> *Example: Your list has "Gary Dempsey" in one column but your CRM needs First Name
-and Last Name separately.*
-
----
-
-#### \U0001f4de Standardise Phone Numbers
-**What it does:** Strips all formatting from phone numbers, keeping only digits and the + symbol.
-Converts messy phone numbers into a clean, consistent format.
-
-> *Example: Your data has phone numbers like "(+44) 020-7946 0958" and "+44 (0)20 7946 0958"
-— this normalises them all.*
-
----
-
-#### \U0001f517 Standardise URLs
-**What it does:** Normalises URLs by removing http://, https://, www., and trailing slashes.
-Makes them consistent for matching and deduplication.
-
-> *Example: You have "https://www.google.com/" and "google.com" — this standardises
-both to "google.com".*
-
----
-
-#### \U0001f3af Value Standardiser
-**What it does:** Matches raw, messy values in your data against a list of standard terms you define.
-Uses three matching strategies: exact match (case-insensitive), keyword match, and fuzzy match
-(Levenshtein distance).
-
-> *Example: Your Country column has "UK", "United Kingdom", "england", "Great Britain"
-— upload a standards list and it maps them all to "United Kingdom" automatically.*
-
----
-
-\U0001f4a1 **Tip:** Select a tool from the sidebar to get started. Each tool has its own
-instructions and options.
-""")
+    - **Column auto-detection**: Many tools automatically find columns like Email, Company, Job Title by checking common names and aliases
+    - **Fuzzy matching**: Uses Levenshtein distance — adjust the threshold slider to be stricter (100% = exact only) or more lenient (50% = loose matching)
+    - **Large files**: All tools handle 100K+ rows. Fuzzy matching may take a moment on very large datasets
+    - **Encoding issues?** Run "Fix Encoding" first before other tools if you see garbled characters
+    """)
 
 
+# ══════════════════════════════════════════════════════════
+# Classify Organisation Type
+# ══════════════════════════════════════════════════════════
 elif tool == TOOLS[1]:
     st.header("\U0001f3e2 Classify Organisation Type")
     st.markdown("""
@@ -281,8 +205,7 @@ elif tool == TOOLS[1]:
     **When to use it:** You need to segment your contact list by the type of organisation
     for targeting, outreach, or reporting.
 
-    **Example:** Company `"Stripe"` with industry `"fintech"` → `"Established fintech or solution provider"` ·
-    Company `"HSBC"` → `"Commercial or corporate bank"`
+    **Example:** Company `"Stripe"` with industry `"fintech"` → `"Established fintech or solution provider"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="co")
     if fi:
@@ -306,21 +229,16 @@ elif tool == TOOLS[2]:
     - **Seniority level:** C-level, VP level, Director, Manager, Associate, or Other
     - **Job function:** Sales, Marketing, IT, Finance, Legal, HR, Operations, Product, etc.
 
-    Supports English, French, Portuguese, and Spanish job titles. Uses word-boundary matching
-    so "Director" won't accidentally match inside "Managing Director".
+    Supports English, French, Portuguese, and Spanish job titles.
 
-    **When to use it:** You have raw job titles and need to segment your list by seniority
-    or department for targeting.
-
-    **Example:** `"Senior Vice President, Sales"` → Seniority: `VP level`, Function: `Sales` ·
-    `"Directeur Marketing"` → Seniority: `Director level`, Function: `Marketing`
+    **Example:** `"Senior Vice President, Sales"` → Seniority: `VP level`, Function: `Sales`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="cj")
     if fi:
         df = load_csv(fi)
         title_col = st.selectbox("Job title column", df.columns, key="cj_title")
-        sen_col = st.selectbox("Existing seniority column (optional — improves accuracy)", ["-- None --"] + list(df.columns), key="cj_sen")
-        dept_col = st.selectbox("Department column (optional — improves function detection)", ["-- None --"] + list(df.columns), key="cj_dept")
+        sen_col = st.selectbox("Existing seniority column (optional)", ["-- None --"] + list(df.columns), key="cj_sen")
+        dept_col = st.selectbox("Department column (optional)", ["-- None --"] + list(df.columns), key="cj_dept")
         if st.button("Classify", key="cj_run"):
             from tools.classify_jobs import classify_jobs
             sc = sen_col if sen_col != "-- None --" else None
@@ -341,15 +259,11 @@ elif tool == TOOLS[3]:
     For each output column, you pick which source column fills it — or set a custom default value.
     Columns with matching names are auto-matched.
 
-    **When to use it:** You have data with columns like `"Person Full Name"`, `"Company"`,
-    `"Work Email"` and need to restructure it into `"First Name"`, `"Last Name"`,
-    `"Organization"`, `"Email"`.
-
     You can either **upload a template CSV** (just the headers row) or **type your output
     column names** manually.
 
-    **Example:** Upload your data as SOURCE → define output columns → visually map each
-    column → download the remapped file.
+    **Example:** Your data has `"Person Full Name"`, `"Company"`, `"Work Email"` and you need
+    `"First Name"`, `"Last Name"`, `"Organization"`, `"Email"` — just map them visually.
     """)
     src_f = st.file_uploader("Upload SOURCE CSV (your data)", type="csv", key="rm_src")
     if src_f:
@@ -390,8 +304,8 @@ elif tool == TOOLS[4]:
     **When to use it:** You have data split across multiple exports — e.g. separate regional
     lists or monthly contact files that need combining.
 
-    **Example:** Upload `contacts_jan.csv`, `contacts_feb.csv`, and `contacts_mar.csv` →
-    get one `combined.csv` with all rows from all three files.
+    **Example:** Upload `contacts_jan.csv`, `contacts_feb.csv`, `contacts_mar.csv` →
+    one `combined.csv` with all rows.
     """)
     files = st.file_uploader("Upload CSV files", type="csv", accept_multiple_files=True, key="combine")
     if files and st.button("Combine", key="combine_run"):
@@ -411,13 +325,11 @@ elif tool == TOOLS[5]:
     **What it does:** Compares a column in your source file against a column in a lookup file,
     and removes any rows from the source that have a match in the lookup.
 
-    **When to use it:**
-    - Remove people who already attended from an invite list
-    - Suppress contacts who have opted out
-    - Remove companies you've already contacted
+    **When to use it:** Remove people who already attended from an invite list, suppress
+    contacts who opted out, or remove companies you've already contacted.
 
-    **Example:** Source: `event_invites.csv` (Email column), Lookup: `already_attended.csv`
-    (Email column) → removes anyone who already attended from the invite list.
+    **Example:** Source: `event_invites.csv` (Email), Lookup: `already_attended.csv` (Email)
+    → removes anyone who already attended.
     """)
     src_f = st.file_uploader("Upload SOURCE CSV (your main list)", type="csv", key="cr_src")
     lkp_f = st.file_uploader("Upload LOOKUP CSV (the removal list)", type="csv", key="cr_lkp")
@@ -442,16 +354,11 @@ elif tool == TOOLS[6]:
     st.markdown("""
     **What it does:** Compares a new contact list against your master database and removes
     anyone who already exists. Matches on **4 keys** (in order):
-    1. **Email** (exact match)
-    2. **LinkedIn URL** (normalised match)
-    3. **First Name + Last Name + Company** (exact match)
-    4. **First Name + Last Name + Website** (exact match)
+    1. **Email** (exact) 2. **LinkedIn URL** (normalised)
+    3. **First + Last Name + Company** 4. **First + Last Name + Website**
 
-    **When to use it:** You've pulled a new list and want to remove people you've already
-    got in your database.
-
-    **Example:** Upload your `master_database.csv` (10,000 rows) and `new_contacts.csv`
-    (500 rows) → get ~350 truly new contacts + a report showing which 150 were duplicates and why.
+    **Example:** Upload `master.csv` (10,000 rows) and `new_contacts.csv` (500 rows) →
+    get ~350 truly new contacts + a report showing which 150 were duplicates and why.
     """)
     master_f = st.file_uploader("Upload MASTER CSV (your existing database)", type="csv", key="dm_master")
     check_f = st.file_uploader("Upload file to CHECK (new contacts)", type="csv", key="dm_check")
@@ -475,15 +382,11 @@ elif tool == TOOLS[6]:
 elif tool == TOOLS[7]:
     st.header("\U0001f310 Extract Company Domains")
     st.markdown("""
-    **What it does:** Extracts the email domain for each company by finding the most common
-    non-personal domain among all contacts at that company. Ignores personal domains like
-    gmail.com, yahoo.com, hotmail.com.
+    **What it does:** Finds the most common non-personal email domain per company.
+    Ignores gmail.com, yahoo.com, hotmail.com, etc.
 
-    **When to use it:** You have contacts with emails but no company website/domain column,
-    and you need to enrich your data.
-
-    **Example:** If 3 people at "Acme Corp" have emails `john@acme.com`, `jane@acme.com`,
-    and `bob@gmail.com`, the tool assigns `acme.com` as Acme Corp's domain.
+    **Example:** 3 people at "Acme Corp" with `john@acme.com`, `jane@acme.com`,
+    `bob@gmail.com` → assigns `acme.com` as Acme Corp's domain.
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="dom")
     if fi:
@@ -507,13 +410,13 @@ elif tool == TOOLS[7]:
 elif tool == TOOLS[8]:
     st.header("\U0001f524 Fix Encoding (Mojibake)")
     st.markdown("""
-    **What it does:** Repairs garbled/broken characters caused by encoding mismatches.
-    Fixes things like `Ã©` → `é`, `Ã¼` → `ü`, `Ã±` → `ñ`.
+    **What it does:** Repairs garbled characters caused by encoding mismatches.
+    Common fixes include broken accented characters in European names and addresses.
 
-    **When to use it:** Your CSV has weird characters in names, companies, or addresses —
-    especially common with European-language data exported from older systems.
+    **When to use it:** Your CSV has weird characters in names or addresses — especially
+    common with European-language data exported from older systems.
 
-    **Example:** `"José García"` appears as `"JosÃ© GarcÃ­a"` → this tool fixes it back.
+    **Example:** `"JosÃ© GarcÃ­a"` → `"José García"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="enc")
     if fi and st.button("Fix Encoding", key="enc_run"):
@@ -528,298 +431,200 @@ elif tool == TOOLS[8]:
 # ══════════════════════════════════════════════════════════
 # Full Data Migration
 # ══════════════════════════════════════════════════════════
-# ══════════════════════════════════════════════════════════
-# Full Data Migration  — with Conditional Rules
-# ══════════════════════════════════════════════════════════
-
 elif tool == TOOLS[9]:
     st.header("\U0001f504 Full Data Migration")
-
     st.markdown("""
-**What it does:** Transforms your raw data into a clean, ready-to-use format — all in one go.
+    **What it does:** Transforms your raw data into a clean, ready-to-import format — all in one go.
 
-Think of it as an assembly line with **5 steps**:
+    | Step | What happens | Example |
+    |------|-------------|---------|
+    | **1. Column Mapping** | Match source columns to output columns | *"Company Name" → "Organisation"* |
+    | **2. Fixed Values** | Set columns that are the same on every row | *Brand = "My Event"* |
+    | **3. Conditional Rules** | Set values based on IF / THEN / ELSE logic | *IF Country = "UK" → Region = "Domestic"* |
+    | **4. Auto-Classification** | Auto-tag seniority, job function & org type | *"VP of Sales" → Seniority: VP, Function: Sales* |
+    | **5. Standardisation** | Clean messy values against your own reference lists | *"acountant" → "Accountant"* |
+    | **6. Suppression Split** | Separate opt-outs/unsubscribes into a different file | *Opted-out contacts → separate CSV* |
+    """)
 
-| Step | What happens | Example |
-|------|-------------|---------|
-| **1. Column Mapping** | Match your source columns to your output columns | *"Company Name" → "Organisation"* |
-| **2. Fixed Values** | Set columns that should be the same on every row | *Brand = "Fintech Meetup"* |
-| **3. Conditional Rules** | Set values based on IF / THEN / ELSE logic | *IF Country = "UK" → Source = "UK List", ELSE Source = "International"* |
-| **4. Auto-Classification** | Auto-tag seniority, job function & org type | *"VP of Sales" → Seniority: VP, Function: Sales* |
-| **5. Standardisation** | Clean messy values against your own reference lists | *"acountant" → "Accountant"* |
-
-**Real-world example:** You receive a raw attendee export from an event. You need to
-remap it into your CRM format, tag everyone from the UK as "Domestic" and everyone else
-as "International", auto-classify their job titles, and standardise company names.
-This tool does all of that in a single click.
-""")
-
-    st.divider()
-
-    # ── Upload source CSV ──
-    src_f = st.file_uploader("Upload your source CSV", type="csv", key="mig_src")
+    src_f = st.file_uploader("Upload SOURCE CSV (your raw data)", type="csv", key="mig_src")
     if src_f:
-        src_df = load_csv(src_f)
-        src_cols = list(src_df.columns)
-        st.success(f"Source loaded: **{len(src_df):,} rows** × **{len(src_cols)} columns**")
-        st.dataframe(src_df.head(5), use_container_width=True)
+        src = load_csv(src_f)
+        src_cols = list(src.columns)
 
-        # ── Define output columns ──
+        # Step 1: Define output columns
+        st.subheader("Step 1: Define your output columns")
         tgt_cols = get_target_columns("mig")
 
         if tgt_cols:
-            st.divider()
+            # Step 2: Map columns & fixed values
+            st.subheader("Step 2: Map columns & set fixed values")
+            st.caption("For each output column, choose a source column, set a fixed value, or leave empty.")
 
-            # ────────────────────────────────────────
-            # STEP 1 — Column Mapping
-            # ────────────────────────────────────────
-            st.subheader("Step 1 \U0001f500 Column Mapping")
-            st.caption("For each output column, pick which source column it should pull data from.")
+            with st.expander("\u26a0\ufe0f Fields you should NOT map (DNI guidance)"):
+                st.markdown("""
+                **Do Not Import (DNI)** — leave these unmapped, they're managed by your target system:
+                - **Record owner / assigned to** — set by assignment rules
+                - **Contact status / lead status** — set by workflow automation
+                - **Opt-out / unsubscribe flags** — use Suppression Split in Step 6 instead
+                - **Activity dates** (last contacted, last modified) — auto-tracked
+                - **Record IDs / internal IDs** — auto-generated, never import
+                - **Duplicate check flags** — handled by your dedup process
 
-            col_mapping = {}
+                Simply leave these as "-- Leave empty --" below.
+                """)
+
+            mapping = {}; defaults = {}
             src_lower = {c.lower(): c for c in src_cols}
             for tc in tgt_cols:
-                auto = src_lower.get(tc.lower())
-                options = ["-- leave empty --"] + src_cols
-                idx = options.index(auto) if auto else 0
-                choice = st.selectbox(
-                    f"**{tc}** ←", options, index=idx, key=f"mig_map_{tc}"
-                )
-                if choice != "-- leave empty --":
-                    col_mapping[tc] = choice
+                auto = src_lower.get(tc.lower(), "-- Leave empty --")
+                options = ["-- Leave empty --", "-- Fixed value --"] + src_cols
+                idx = options.index(auto) if auto in options else 0
+                choice = st.selectbox(f"**{tc}**", options, index=idx, key=f"mig_{tc}")
+                if choice == "-- Fixed value --":
+                    val = st.text_input(f"Value for {tc}", placeholder="Same value for every row", key=f"mig_fix_{tc}")
+                    defaults[tc] = val
+                elif choice != "-- Leave empty --":
+                    mapping[tc] = choice
 
-            st.divider()
+            # Step 3: Conditional rules
+            st.subheader("Step 3: Conditional rules (optional)")
+            st.caption("Set values based on IF / THEN / ELSE logic. Rules run on your **output** columns (after mapping).")
+            st.warning("\u26a0\ufe0f **Rule order matters:** Later rules can overwrite values set by earlier rules on the same output column.")
 
-            # ────────────────────────────────────────
-            # STEP 2 — Fixed Values
-            # ────────────────────────────────────────
-            st.subheader("Step 2 \U0001f4cc Fixed Values")
-            st.caption("Set a value that will be the same on **every** row (e.g. Brand, Event Name, Source).")
-
-            fixed_values = {}
-            with st.expander("\u2795 Set fixed values"):
-                for tc in tgt_cols:
-                    val = st.text_input(
-                        f"Fixed value for **{tc}**",
-                        key=f"mig_fix_{tc}",
-                        placeholder="Leave blank to skip",
-                    )
-                    if val.strip():
-                        fixed_values[tc] = val.strip()
-
-            st.divider()
-
-            # ────────────────────────────────────────
-            # STEP 3 — Conditional Rules  ← NEW
-            # ────────────────────────────────────────
-            st.subheader("Step 3 \U0001f9e9 Conditional Rules")
-            st.caption(
-                "Set column values based on conditions. "
-                "For example: *IF Country equals 'UK' → set Source = 'Domestic', otherwise 'International'*."
-            )
-
-            CONDITIONS = [
-                "equals",
-                "not equals",
-                "contains",
-                "does not contain",
-                "starts with",
-                "is blank",
-                "is not blank",
-            ]
-
+            num_rules = st.number_input("Number of conditional rules", 0, 20, 0, key="mig_nrules")
             conditional_rules = []
+            for i in range(int(num_rules)):
+                st.markdown(f"---\n**Rule {i+1}**")
+                c1, c2, c3 = st.columns(3)
+                r_col = c1.selectbox("IF column", tgt_cols, key=f"mig_rcol_{i}")
+                r_op = c2.selectbox("Operator", ["equals", "contains", "not_empty", "is_empty"], key=f"mig_rop_{i}")
+                r_val = c3.text_input("Value", key=f"mig_rval_{i}",
+                                       disabled=(r_op in ("not_empty", "is_empty")))
 
-            with st.expander("\u2795 Add Conditional Rules"):
-                num_rules = st.number_input(
-                    "How many rules do you need?", min_value=0, max_value=20, value=0,
-                    key="mig_num_rules",
-                )
+                c4, c5 = st.columns(2)
+                r_out_col = c4.selectbox("THEN set column", tgt_cols, key=f"mig_routcol_{i}")
+                r_out_val = c5.text_input("THEN value", key=f"mig_routval_{i}")
 
-                for i in range(int(num_rules)):
-                    st.markdown(f"---")
-                    st.markdown(f"**Rule {i + 1}**")
+                c6, c7 = st.columns(2)
+                r_else_val = c6.text_input("ELSE value (optional)", key=f"mig_relse_{i}")
+                r_mode = c7.selectbox("Write mode", [
+                    "Overwrite always",
+                    "Only fill blanks",
+                    "Append with semicolon (;value;value)"
+                ], key=f"mig_rmode_{i}")
 
-                    # Row 1 — Condition
-                    c1, c2, c3 = st.columns(3)
-                    r_col = c1.selectbox(
-                        "IF column", src_cols, key=f"mig_rcol_{i}",
-                    )
-                    r_cond = c2.selectbox(
-                        "condition", CONDITIONS, key=f"mig_rcond_{i}",
-                    )
-                    value_disabled = r_cond in ("is blank", "is not blank")
-                    r_val = c3.text_input(
-                        "value",
-                        key=f"mig_rval_{i}",
-                        disabled=value_disabled,
-                        placeholder="(not needed)" if value_disabled else "e.g. UK",
-                    )
+                mode_map = {
+                    "Overwrite always": "overwrite",
+                    "Only fill blanks": "fill_blank",
+                    "Append with semicolon (;value;value)": "append_semicolon",
+                }
 
-                    # Row 2 — Output
-                    c4, c5, c6 = st.columns(3)
-                    r_out_col = c4.selectbox(
-                        "THEN set column", tgt_cols, key=f"mig_routcol_{i}",
-                    )
-                    r_out_val = c5.text_input(
-                        "to value", key=f"mig_routval_{i}",
-                        placeholder="e.g. Fintech Meetup UK",
-                    )
-                    r_fb = c6.text_input(
-                        "ELSE set to (optional)", key=f"mig_rfb_{i}",
-                        placeholder="Leave blank to skip non-matches",
-                        help="If left empty, rows that don't match the condition won't be changed.",
-                    )
+                conditional_rules.append({
+                    "col": r_col, "operator": r_op, "value": r_val,
+                    "out_col": r_out_col, "out_val": r_out_val,
+                    "else_val": r_else_val, "mode": mode_map[r_mode],
+                })
 
-                    # Build rule dict
-                    rule = {
-                        "column": r_col,
-                        "condition": r_cond,
-                        "value": r_val,
-                        "output_column": r_out_col,
-                        "output_value": r_out_val,
-                        "fallback_value": r_fb,
-                    }
-                    conditional_rules.append(rule)
-
-                    # Plain-English summary
-                    if value_disabled:
-                        eng = f"\U0001f4a1 **Rule {i+1}:** IF *{r_col}* **{r_cond}** → set *{r_out_col}* = \\`{r_out_val}\\`"
-                    else:
-                        eng = f"\U0001f4a1 **Rule {i+1}:** IF *{r_col}* **{r_cond}** \\`{r_val}\\` → set *{r_out_col}* = \\`{r_out_val}\\`"
-                    if r_fb:
-                        eng += f", otherwise set *{r_out_col}* = \\`{r_fb}\\`"
-                    st.info(eng)
-
-            # Show summary of all rules outside the expander
-            if conditional_rules:
-                st.markdown(f"**{len(conditional_rules)} conditional rule(s) configured.**")
-
-            st.divider()
-
-            # ────────────────────────────────────────
-            # STEP 4 — Auto-Classification
-            # ────────────────────────────────────────
-            st.subheader("Step 4 \U0001f916 Auto-Classification")
-            st.caption("Automatically tag seniority, job function, and organisation type from job titles.")
-
-            do_classify = st.checkbox("Enable auto-classification", value=True, key="mig_classify")
+            # Step 4: Auto-classify
+            st.subheader("Step 4: Auto-classify (optional)")
+            st.caption("Automatically add Seniority, Job Function, and Organisation Type columns.")
+            classify = st.checkbox("Auto-classify seniority, function, and org type", value=True, key="mig_cls")
             title_col = None
-            if do_classify:
-                title_col = st.selectbox(
-                    "Which column contains the job title?",
-                    ["-- select --"] + tgt_cols,
-                    key="mig_title_col",
-                )
-                if title_col == "-- select --":
-                    title_col = None
+            if classify:
+                title_col = st.selectbox("Which output column has job titles?", ["-- None --"] + tgt_cols, key="mig_tcol")
+                title_col = title_col if title_col != "-- None --" else None
 
-            st.divider()
+            # Step 5: Standardise values
+            st.subheader("Step 5: Standardise values (optional)")
+            st.caption("Upload a rules CSV to standardise a column. See the Value Standardiser tool for how to format your rules.")
+            rules_f = st.file_uploader("Upload RULES CSV (optional)", type="csv", key="mig_rules")
+            std_configs = []
+            if rules_f:
+                rules_df = load_csv(rules_f)
+                std_target_col = st.selectbox("Output column to standardise", tgt_cols, key="mig_stcol")
+                std_standard_col = st.selectbox("Standard value column (in rules)", rules_df.columns, key="mig_stdcol")
+                alias_options = ["-- None --"] + list(rules_df.columns)
+                std_alias_col = st.selectbox("Aliases column (optional)", alias_options, key="mig_stalias")
+                std_threshold = st.slider("Fuzzy threshold %", 50, 100, 80, key="mig_stth")
+                std_configs.append({
+                    "col": std_target_col, "standards_df": rules_df,
+                    "standard_col": std_standard_col,
+                    "aliases_col": std_alias_col if std_alias_col != "-- None --" else None,
+                    "threshold": std_threshold,
+                })
 
-            # ────────────────────────────────────────
-            # STEP 5 — Standardisation (optional)
-            # ────────────────────────────────────────
-            st.subheader("Step 5 \U0001f3af Standardisation (optional)")
-            st.caption("Clean messy values by matching them against your own reference lists.")
+            # Step 6: Suppression split
+            st.subheader("Step 6: Suppression split (optional)")
+            st.caption("Separate opt-outs, unsubscribes, or other exclusions into a different file so they're not mixed into your normal import.")
+            num_sup = st.number_input("Number of suppression rules", 0, 10, 0, key="mig_nsup")
+            suppression_rules = []
+            for i in range(int(num_sup)):
+                sc1, sc2, sc3 = st.columns(3)
+                s_col = sc1.selectbox(f"Suppression column {i+1}", tgt_cols, key=f"mig_supcol_{i}")
+                s_op = sc2.selectbox(f"Operator {i+1}", ["equals", "contains", "not_empty"], key=f"mig_supop_{i}")
+                s_val = sc3.text_input(f"Value {i+1}", key=f"mig_supval_{i}",
+                                        disabled=(s_op == "not_empty"))
+                suppression_rules.append({"col": s_col, "operator": s_op, "value": s_val})
 
-            standardize_configs = []
-            with st.expander("\u2795 Add standardisation rules"):
-                num_std = st.number_input(
-                    "How many columns to standardise?", 0, 10, 0, key="mig_num_std",
-                )
-                for j in range(int(num_std)):
-                    st.markdown(f"---")
-                    st.markdown(f"**Standardise column {j + 1}**")
-                    std_col = st.selectbox(
-                        "Column to standardise", tgt_cols, key=f"mig_stdcol_{j}",
-                    )
-                    std_file = st.file_uploader(
-                        "Upload standards CSV", type="csv", key=f"mig_stdf_{j}",
-                    )
-                    if std_file:
-                        std_df = load_csv(std_file)
-                        std_col_name = st.selectbox(
-                            "Standard value column", list(std_df.columns), key=f"mig_stdcn_{j}",
-                        )
-                        alias_col_name = st.selectbox(
-                            "Aliases column (optional)",
-                            ["-- none --"] + list(std_df.columns),
-                            key=f"mig_stdan_{j}",
-                        )
-                        threshold = st.slider(
-                            "Fuzzy match threshold %", 50, 100, 80, key=f"mig_stdth_{j}",
-                        )
-                        standardize_configs.append({
-                            "col": std_col,
-                            "standards_df": std_df,
-                            "standard_col": std_col_name,
-                            "aliases_col": alias_col_name if alias_col_name != "-- none --" else None,
-                            "threshold": threshold,
-                        })
-
-            st.divider()
-
-            # ────────────────────────────────────────
-            # RUN MIGRATION
-            # ────────────────────────────────────────
-            st.subheader("\U0001f680 Run Migration")
-
-            # Show a quick summary of what will happen
-            st.markdown("**Pipeline summary:**")
-            pipeline_items = ["Column mapping"]
-            if fixed_values:
-                pipeline_items.append(f"Fixed values ({len(fixed_values)})")
-            if conditional_rules:
-                pipeline_items.append(f"Conditional rules ({len(conditional_rules)})")
-            if do_classify and title_col:
-                pipeline_items.append("Auto-classification")
-            if standardize_configs:
-                pipeline_items.append(f"Standardisation ({len(standardize_configs)} columns)")
-            st.write(" → ".join(pipeline_items))
-
-            if st.button("\u25b6\ufe0f Run Full Data Migration", type="primary", key="mig_run"):
+            # RUN
+            if st.button("\U0001f680 Run Migration", key="mig_run"):
                 from tools.data_migration import run_migration
+                result, suppressed, std_report, rule_applied, rule_skipped, summary = run_migration(
+                    src, tgt_cols, mapping, defaults, conditional_rules,
+                    classify, title_col, std_configs, suppression_rules)
 
-                with st.spinner("Running migration pipeline..."):
-                    result_df, reports_df, summary = run_migration(
-                        source_df=src_df,
-                        target_columns=tgt_cols,
-                        column_mapping=col_mapping,
-                        fixed_values=fixed_values,
-                        conditional_rules=conditional_rules if conditional_rules else None,
-                        classify=do_classify,
-                        title_col_name=title_col,
-                        standardize_configs=standardize_configs if standardize_configs else None,
-                    )
-
-                st.success("Migration complete!")
                 show_summary(summary)
 
-                st.subheader("Output Preview")
-                st.dataframe(result_df.head(20), use_container_width=True)
+                with st.expander("\U0001f4cb Migration Preview Report"):
+                    st.markdown("**Column Mapping:**")
+                    for tc in tgt_cols:
+                        if tc in mapping:
+                            st.markdown(f"- {mapping[tc]} → **{tc}**")
+                        elif tc in defaults and defaults[tc]:
+                            st.markdown(f"- *(fixed)* **{tc}** = `{defaults[tc]}`")
+                        else:
+                            st.markdown(f"- *(empty)* **{tc}**")
 
-                dl(result_df, "migrated data", "migrated_data.csv")
+                    if rule_applied:
+                        st.markdown("**Conditional Rules Applied:**")
+                        st.dataframe(pd.DataFrame(rule_applied))
 
-                if not reports_df.empty:
+                    if rule_skipped:
+                        st.markdown("**\u26a0\ufe0f Conditional Rules SKIPPED (check these!):**")
+                        st.dataframe(pd.DataFrame(rule_skipped))
+
+                st.subheader("\u2705 Migrated Data")
+                st.dataframe(result.head(100))
+                dl(result, "migrated CSV", "migrated.csv")
+
+                if len(suppressed):
+                    st.subheader(f"\U0001f6ab Suppressed / Opt-Out Rows ({len(suppressed):,})")
+                    st.caption("These rows were separated. Import separately or keep for records.")
+                    st.dataframe(suppressed.head(100))
+                    dl(suppressed, "suppressed CSV", "suppressed.csv")
+
+                if len(std_report):
                     st.subheader("Standardisation Report")
-                    st.dataframe(reports_df, use_container_width=True)
-                    dl(reports_df, "standardisation report", "standardisation_report.csv")
+                    st.dataframe(std_report)
+                    dl(std_report, "standardisation report", "std_report.csv")
+
+                if rule_skipped:
+                    st.error(f"\u26a0\ufe0f {len(rule_skipped)} conditional rule(s) were SKIPPED because columns were missing. Check the Migration Preview Report above.")
 
 
+# ══════════════════════════════════════════════════════════
+# Fuzzy Duplicate Finder
+# ══════════════════════════════════════════════════════════
 elif tool == TOOLS[10]:
     st.header("\U0001f501 Fuzzy Duplicate Finder")
     st.markdown("""
-    **What it does:** Scans a single column for near-duplicate values using fuzzy string
-    matching (Levenshtein distance). Flags each row as "Unique" or "Duplicate" with the
-    match percentage and which row it matched against.
+    **What it does:** Scans a column for near-duplicate values using fuzzy string matching.
+    Flags each row as "Unique" or "Duplicate" with the match % and which row it matched.
 
-    **When to use it:** Your list has messy company names or person names that might be
-    duplicates with slightly different spelling.
+    **Example:** At 90% threshold, `"Acme Corporation"` and `"Acme Corp"` = duplicate (92%).
+    `"Acme Corp"` and `"Ajax Corp"` = unique (67%).
 
-    **Example:** With threshold 90%, `"Acme Corporation"` and `"Acme Corp"` would be flagged
-    as duplicates (92% match). `"Acme Corp"` and `"Ajax Corp"` would not (67% match).
-
-    **Tip:** Set threshold to 95% for strict matching, 80% for loose matching.
+    **Tip:** 95% = strict, 80% = loose.
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="ifd")
     if fi:
@@ -840,21 +645,17 @@ elif tool == TOOLS[10]:
 elif tool == TOOLS[11]:
     st.header("\U0001f50e LinkedIn Search Links")
     st.markdown("""
-    **What it does:** Generates a clickable LinkedIn people-search URL for each person,
-    using their name, job title, and company as search keywords.
-
-    **When to use it:** You have a list of contacts without LinkedIn profile URLs and want
-    quick links to find them on LinkedIn.
+    **What it does:** Generates a clickable LinkedIn people-search URL for each person.
 
     **Example:** Name: `"Jane Doe"`, Title: `"VP Sales"`, Company: `"Acme Corp"` →
-    generates a LinkedIn search URL with those keywords.
+    LinkedIn search URL with those keywords.
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="li")
     if fi:
         df = load_csv(fi)
         name_col = st.selectbox("Name column", df.columns, key="li_name")
-        title_col = st.selectbox("Title column (optional — makes search more precise)", ["-- None --"] + list(df.columns), key="li_title")
-        co_col = st.selectbox("Company column (optional — makes search more precise)", ["-- None --"] + list(df.columns), key="li_co")
+        title_col = st.selectbox("Title column (optional)", ["-- None --"] + list(df.columns), key="li_title")
+        co_col = st.selectbox("Company column (optional)", ["-- None --"] + list(df.columns), key="li_co")
         if st.button("Generate Links", key="li_run"):
             from tools.linkedin_links import add_linkedin_links
             tc = title_col if title_col != "-- None --" else None
@@ -871,17 +672,13 @@ elif tool == TOOLS[11]:
 elif tool == TOOLS[12]:
     st.header("\U0001f517 Merge / Split Columns")
     st.markdown("""
-    **What it does:** Two modes:
-    - **Merge:** Combine 2+ columns into one new column with a separator
-    - **Split:** Break one column into multiple new columns on a separator
+    **What it does:**
+    - **Merge:** Combine 2+ columns into one with a separator
+    - **Split:** Break one column into multiple on a separator
 
-    **When to use it:**
-    - *Merge:* You need a "Full Name" column but only have "First Name" and "Last Name"
-    - *Split:* Your data has "City, Country" in one column and you need them separate
+    **Example (Merge):** `First Name` + `Last Name` → `Full Name`: `"John Smith"`
 
-    **Example (Merge):** `First Name` + `Last Name` with separator `" "` → `Full Name`: `"John Smith"`
-
-    **Example (Split):** `Location` split on `", "` → `City`: `"London"`, `Country`: `"UK"`
+    **Example (Split):** `Location` on `", "` → `City`: `"London"`, `Country`: `"UK"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="ms")
     if fi:
@@ -914,17 +711,13 @@ elif tool == TOOLS[12]:
 elif tool == TOOLS[13]:
     st.header("\U0001f6ab Remove by Keywords / Flag")
     st.markdown("""
-    **What it does:** Two modes:
-    - **Keywords mode:** Removes rows where a column contains any of your specified keywords
-    - **Flag mode:** Removes rows where a column exactly equals a flag value
+    **What it does:**
+    - **Keywords:** Remove rows where a column contains any keyword you specify
+    - **Flag:** Remove rows where a column exactly equals a value
 
-    **When to use it:**
-    - *Keywords:* Remove contacts with certain job titles (e.g. "intern, student, retired")
-    - *Flag:* Remove rows flagged as "yes" in a Duplicate column
+    **Example (Keywords):** Column: `Job Title`, Keywords: `intern, student` → removes all interns/students
 
-    **Example (Keywords):** Column: `Job Title`, Keywords: `intern, student` → removes all interns and students
-
-    **Example (Flag):** Column: `Is Duplicate`, Flag: `yes` → removes all flagged rows
+    **Example (Flag):** Column: `Is Duplicate`, Flag: `yes` → removes flagged rows
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="rk")
     if fi:
@@ -958,12 +751,9 @@ elif tool == TOOLS[13]:
 elif tool == TOOLS[14]:
     st.header("\U0001f9f9 Remove Blank Rows")
     st.markdown("""
-    **What it does:** Deletes rows that are completely empty or contain only whitespace.
+    **What it does:** Deletes rows that are completely empty or whitespace-only.
 
-    **When to use it:** Your CSV has blank rows scattered throughout (common after
-    copy-pasting from spreadsheets or exporting from databases).
-
-    **Example:** A 1,000-row file with 47 blank rows → cleaned file with 953 rows.
+    **Example:** 1,000-row file with 47 blank rows → cleaned file with 953 rows.
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="rb")
     if fi and st.button("Remove Blanks", key="rb_run"):
@@ -981,12 +771,9 @@ elif tool == TOOLS[14]:
 elif tool == TOOLS[15]:
     st.header("\U0001f464 Standardise Names")
     st.markdown("""
-    **What it does:** Splits a "Full Name" column into separate "First Name" and "Last Name" columns.
+    **What it does:** Splits a "Full Name" column into separate "First Name" and "Last Name".
 
-    **When to use it:** Your data has a single name column like `"John Smith"` but your system
-    needs separate first/last name fields.
-
-    **Example:** `"Mary Jane Watson"` → First Name: `"Mary"`, Last Name: `"Jane Watson"`
+    **Example:** `"Mary Jane Watson"` → First: `"Mary"`, Last: `"Jane Watson"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="sn")
     if fi:
@@ -1006,10 +793,7 @@ elif tool == TOOLS[15]:
 elif tool == TOOLS[16]:
     st.header("\U0001f4de Standardise Phone Numbers")
     st.markdown("""
-    **What it does:** Strips all formatting from phone numbers, keeping only digits and the `+` symbol.
-
-    **When to use it:** Phone numbers in your data have inconsistent formatting — brackets,
-    dashes, dots, spaces — and you need them clean for import.
+    **What it does:** Strips all formatting, keeping only digits and `+`.
 
     **Example:** `"+1 (555) 123-4567"` → `"+15551234567"`
     """)
@@ -1031,10 +815,7 @@ elif tool == TOOLS[16]:
 elif tool == TOOLS[17]:
     st.header("\U0001f517 Standardise URLs")
     st.markdown("""
-    **What it does:** Normalises URLs by removing `http://`, `https://`, `www.`, and trailing slashes.
-
-    **When to use it:** Website or LinkedIn URLs in your data are inconsistent — some have
-    `https://www.`, others don't, some have trailing slashes.
+    **What it does:** Normalises URLs by removing `http://`, `https://`, `www.`, trailing slashes.
 
     **Example (Website):** `"https://www.acme.com/"` → `"acme.com"`
 
@@ -1059,14 +840,11 @@ elif tool == TOOLS[17]:
 elif tool == TOOLS[18]:
     st.header("\U0001f3af Value Standardiser")
     st.markdown("""
-    **What it does:** Matches raw, messy values in your data against a list of standard terms
-    you define. Uses three matching strategies in order:
-    1. **Exact match** (case-insensitive) — `"accountant"` matches `"Accountant"` → 100%
-    2. **Keyword match** — `"senior auditor"` contains `"auditor"` (an alias) → 90%
-    3. **Fuzzy match** (Levenshtein) — `"acountant"` is close to `"Accountant"` → 89%
-
-    **When to use it:** You want to standardise job titles, company names, categories, or any
-    column where the same thing appears with different spellings or variations.
+    **What it does:** Matches raw, messy values against a list of standard terms you define.
+    Uses three strategies in order:
+    1. **Exact match** (case-insensitive) → 100%
+    2. **Keyword match** (alias found inside raw value) → 90%
+    3. **Fuzzy match** (Levenshtein similarity) → configurable threshold
 
     **How to set up your rules CSV:**
 
