@@ -489,7 +489,7 @@ elif tool == TOOLS[9]:
 		# Step 3: Conditional rules
             st.subheader("Step 3: Conditional rules (optional)")
             st.caption("Check your **source/input** columns, then write values into your **output** columns.")
- st.info("\U0001f4a1 **Example:** IF source column `STS26 Ticket Type` contains `Attendee` → THEN set output column `GLOBAL_Previous event attendance` to `;Shoptalk Luxe 2026`")
+            st.info("\U0001f4a1 **Example:** IF source column `STS26 Ticket Type` contains `Attendee` \u2192 THEN set output column `GLOBAL_Previous event attendance` to `;Shoptalk Luxe 2026`")column `GLOBAL_Previous event attendance` to `;Shoptalk Luxe 2026`")
             st.warning("\u26a0\ufe0f **Rule order matters:** Later rules can overwrite values set by earlier rules on the same output column.")
 
             num_rules = st.number_input("Number of conditional rules", 0, 20, 0, key="mig_nrules")
