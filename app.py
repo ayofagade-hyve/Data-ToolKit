@@ -68,9 +68,9 @@ def get_target_columns(key_prefix):
         return None
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # HOME
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 if tool == TOOLS[0]:
     st.title("\U0001f9f9 Data Cleaning & File Automation Toolkit")
     st.markdown("""
@@ -189,9 +189,9 @@ if tool == TOOLS[0]:
     """)
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Classify Organisation Type
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[1]:
     st.header("\U0001f3e2 Classify Organisation Type")
     st.markdown("""
@@ -205,7 +205,7 @@ elif tool == TOOLS[1]:
     **When to use it:** You need to segment your contact list by the type of organisation
     for targeting, outreach, or reporting.
 
-    **Example:** Company `"Stripe"` with industry `"fintech"` → `"Established fintech or solution provider"`
+    **Example:** Company `"Stripe"` with industry `"fintech"` -> `"Established fintech or solution provider"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="co")
     if fi:
@@ -219,9 +219,9 @@ elif tool == TOOLS[1]:
             dl(result, "classified", "classified_orgs.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Classify Seniority & Job Function
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[2]:
     st.header("\U0001f4bc Classify Seniority & Job Function")
     st.markdown("""
@@ -231,7 +231,7 @@ elif tool == TOOLS[2]:
 
     Supports English, French, Portuguese, and Spanish job titles.
 
-    **Example:** `"Senior Vice President, Sales"` → Seniority: `VP level`, Function: `Sales`
+    **Example:** `"Senior Vice President, Sales"` -> Seniority: `VP level`, Function: `Sales`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="cj")
     if fi:
@@ -249,9 +249,9 @@ elif tool == TOOLS[2]:
             dl(result, "classified", "classified_jobs.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Column Remapper
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[3]:
     st.header("\U0001f500 Column Remapper")
     st.markdown("""
@@ -293,9 +293,9 @@ elif tool == TOOLS[3]:
                 dl(result, "remapped CSV", "remapped.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Combine CSVs
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[4]:
     st.header("\U0001f4ce Combine CSVs")
     st.markdown("""
@@ -304,7 +304,7 @@ elif tool == TOOLS[4]:
     **When to use it:** You have data split across multiple exports — e.g. separate regional
     lists or monthly contact files that need combining.
 
-    **Example:** Upload `contacts_jan.csv`, `contacts_feb.csv`, `contacts_mar.csv` →
+    **Example:** Upload `contacts_jan.csv`, `contacts_feb.csv`, `contacts_mar.csv` ->
     one `combined.csv` with all rows.
     """)
     files = st.file_uploader("Upload CSV files", type="csv", accept_multiple_files=True, key="combine")
@@ -316,9 +316,9 @@ elif tool == TOOLS[4]:
         dl(result, "combined CSV", "combined.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Compare & Remove
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[5]:
     st.header("\u2696\ufe0f Compare & Remove")
     st.markdown("""
@@ -329,7 +329,7 @@ elif tool == TOOLS[5]:
     contacts who opted out, or remove companies you've already contacted.
 
     **Example:** Source: `event_invites.csv` (Email), Lookup: `already_attended.csv` (Email)
-    → removes anyone who already attended.
+    -> removes anyone who already attended.
     """)
     src_f = st.file_uploader("Upload SOURCE CSV (your main list)", type="csv", key="cr_src")
     lkp_f = st.file_uploader("Upload LOOKUP CSV (the removal list)", type="csv", key="cr_lkp")
@@ -346,9 +346,9 @@ elif tool == TOOLS[5]:
             if len(removed): dl(removed, "removed rows", "compare_removed.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Deduplicate vs Master List
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[6]:
     st.header("\U0001f50d Deduplicate vs Master List")
     st.markdown("""
@@ -357,7 +357,7 @@ elif tool == TOOLS[6]:
     1. **Email** (exact) 2. **LinkedIn URL** (normalised)
     3. **First + Last Name + Company** 4. **First + Last Name + Website**
 
-    **Example:** Upload `master.csv` (10,000 rows) and `new_contacts.csv` (500 rows) →
+    **Example:** Upload `master.csv` (10,000 rows) and `new_contacts.csv` (500 rows) ->
     get ~350 truly new contacts + a report showing which 150 were duplicates and why.
     """)
     master_f = st.file_uploader("Upload MASTER CSV (your existing database)", type="csv", key="dm_master")
@@ -376,9 +376,9 @@ elif tool == TOOLS[6]:
             dl(removed, "removed rows", "deduped_removed.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Extract Company Domains
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[7]:
     st.header("\U0001f310 Extract Company Domains")
     st.markdown("""
@@ -386,7 +386,7 @@ elif tool == TOOLS[7]:
     Ignores gmail.com, yahoo.com, hotmail.com, etc.
 
     **Example:** 3 people at "Acme Corp" with `john@acme.com`, `jane@acme.com`,
-    `bob@gmail.com` → assigns `acme.com` as Acme Corp's domain.
+    `bob@gmail.com` -> assigns `acme.com` as Acme Corp's domain.
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="dom")
     if fi:
@@ -404,9 +404,9 @@ elif tool == TOOLS[7]:
                 dl(missing, "missing domains", "missing_domains.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Fix Encoding (Mojibake)
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[8]:
     st.header("\U0001f524 Fix Encoding (Mojibake)")
     st.markdown("""
@@ -415,8 +415,6 @@ elif tool == TOOLS[8]:
 
     **When to use it:** Your CSV has weird characters in names or addresses — especially
     common with European-language data exported from older systems.
-
-    **Example:** `"JosÃ© GarcÃ­a"` → `"José García"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="enc")
     if fi and st.button("Fix Encoding", key="enc_run"):
@@ -428,9 +426,9 @@ elif tool == TOOLS[8]:
         dl(result, "cleaned CSV", "encoding_fixed.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Full Data Migration
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[9]:
     st.header("\U0001f504 Full Data Migration")
     st.markdown("""
@@ -438,12 +436,12 @@ elif tool == TOOLS[9]:
 
     | Step | What happens | Example |
     |------|-------------|---------|
-    | **1. Column Mapping** | Match source columns to output columns | *"Company Name" → "Organisation"* |
+    | **1. Column Mapping** | Match source columns to output columns | *"Company Name" -> "Organisation"* |
     | **2. Fixed Values** | Set columns that are the same on every row | *Brand = "My Event"* |
-    | **3. Conditional Rules** | Set values based on IF / THEN / ELSE logic | *IF Country = "UK" → Region = "Domestic"* |
-    | **4. Auto-Classification** | Auto-tag seniority, job function & org type | *"VP of Sales" → Seniority: VP, Function: Sales* |
-    | **5. Standardisation** | Clean messy values against your own reference lists | *"acountant" → "Accountant"* |
-    | **6. Suppression Split** | Separate opt-outs/unsubscribes into a different file | *Opted-out contacts → separate CSV* |
+    | **3. Conditional Rules** | Set values based on IF / THEN / ELSE logic | *IF Country = "UK" -> Region = "Domestic"* |
+    | **4. Auto-Classification** | Auto-tag seniority, job function & org type | *"VP of Sales" -> Seniority: VP, Function: Sales* |
+    | **5. Standardisation** | Clean messy values against your own reference lists | *"acountant" -> "Accountant"* |
+    | **6. Suppression Split** | Separate opt-outs/unsubscribes into a different file | *Opted-out contacts -> separate CSV* |
     """)
 
     src_f = st.file_uploader("Upload SOURCE CSV (your raw data)", type="csv", key="mig_src")
@@ -486,10 +484,10 @@ elif tool == TOOLS[9]:
                 elif choice != "-- Leave empty --":
                     mapping[tc] = choice
 
-		# Step 3: Conditional rules
+            # Step 3: Conditional rules
             st.subheader("Step 3: Conditional rules (optional)")
             st.caption("Check your **source/input** columns, then write values into your **output** columns.")
-            st.info("\U0001f4a1 **Example:** IF source column `STS26 Ticket Type` contains `Attendee` \u2192 THEN set output column `GLOBAL_Previous event attendance` to `;Shoptalk Luxe 2026`")column `GLOBAL_Previous event attendance` to `;Shoptalk Luxe 2026`")
+            st.info("Example: IF source column 'STS26 Ticket Type' contains 'Attendee' THEN set output column 'GLOBAL_Previous event attendance' to ';Shoptalk Luxe 2026'")
             st.warning("\u26a0\ufe0f **Rule order matters:** Later rules can overwrite values set by earlier rules on the same output column.")
 
             num_rules = st.number_input("Number of conditional rules", 0, 20, 0, key="mig_nrules")
@@ -580,7 +578,7 @@ elif tool == TOOLS[9]:
                     st.markdown("**Column Mapping:**")
                     for tc in tgt_cols:
                         if tc in mapping:
-                            st.markdown(f"- {mapping[tc]} → **{tc}**")
+                            st.markdown(f"- {mapping[tc]} -> **{tc}**")
                         elif tc in defaults and defaults[tc]:
                             st.markdown(f"- *(fixed)* **{tc}** = `{defaults[tc]}`")
                         else:
@@ -613,9 +611,9 @@ elif tool == TOOLS[9]:
                     st.error(f"\u26a0\ufe0f {len(rule_skipped)} conditional rule(s) were SKIPPED because columns were missing. Check the Migration Preview Report above.")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Fuzzy Duplicate Finder
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[10]:
     st.header("\U0001f501 Fuzzy Duplicate Finder")
     st.markdown("""
@@ -640,15 +638,15 @@ elif tool == TOOLS[10]:
             dl(result, "results with flags", "fuzzy_dedup.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # LinkedIn Search Links
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[11]:
     st.header("\U0001f50e LinkedIn Search Links")
     st.markdown("""
     **What it does:** Generates a clickable LinkedIn people-search URL for each person.
 
-    **Example:** Name: `"Jane Doe"`, Title: `"VP Sales"`, Company: `"Acme Corp"` →
+    **Example:** Name: `"Jane Doe"`, Title: `"VP Sales"`, Company: `"Acme Corp"` ->
     LinkedIn search URL with those keywords.
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="li")
@@ -667,9 +665,9 @@ elif tool == TOOLS[11]:
             dl(result, "with LinkedIn links", "linkedin_links.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Merge / Split Columns
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[12]:
     st.header("\U0001f517 Merge / Split Columns")
     st.markdown("""
@@ -677,9 +675,9 @@ elif tool == TOOLS[12]:
     - **Merge:** Combine 2+ columns into one with a separator
     - **Split:** Break one column into multiple on a separator
 
-    **Example (Merge):** `First Name` + `Last Name` → `Full Name`: `"John Smith"`
+    **Example (Merge):** `First Name` + `Last Name` -> `Full Name`: `"John Smith"`
 
-    **Example (Split):** `Location` on `", "` → `City`: `"London"`, `Country`: `"UK"`
+    **Example (Split):** `Location` on `", "` -> `City`: `"London"`, `Country`: `"UK"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="ms")
     if fi:
@@ -706,9 +704,9 @@ elif tool == TOOLS[12]:
                 dl(result, "split", "split.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Remove by Keywords / Flag
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[13]:
     st.header("\U0001f6ab Remove by Keywords / Flag")
     st.markdown("""
@@ -716,9 +714,9 @@ elif tool == TOOLS[13]:
     - **Keywords:** Remove rows where a column contains any keyword you specify
     - **Flag:** Remove rows where a column exactly equals a value
 
-    **Example (Keywords):** Column: `Job Title`, Keywords: `intern, student` → removes all interns/students
+    **Example (Keywords):** Column: `Job Title`, Keywords: `intern, student` -> removes all interns/students
 
-    **Example (Flag):** Column: `Is Duplicate`, Flag: `yes` → removes flagged rows
+    **Example (Flag):** Column: `Is Duplicate`, Flag: `yes` -> removes flagged rows
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="rk")
     if fi:
@@ -746,15 +744,15 @@ elif tool == TOOLS[13]:
                 if len(removed): dl(removed, "removed rows", "flag_removed.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Remove Blank Rows
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[14]:
     st.header("\U0001f9f9 Remove Blank Rows")
     st.markdown("""
     **What it does:** Deletes rows that are completely empty or whitespace-only.
 
-    **Example:** 1,000-row file with 47 blank rows → cleaned file with 953 rows.
+    **Example:** 1,000-row file with 47 blank rows -> cleaned file with 953 rows.
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="rb")
     if fi and st.button("Remove Blanks", key="rb_run"):
@@ -766,15 +764,15 @@ elif tool == TOOLS[14]:
         dl(result, "cleaned", "no_blanks.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Standardise Names
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[15]:
     st.header("\U0001f464 Standardise Names")
     st.markdown("""
     **What it does:** Splits a "Full Name" column into separate "First Name" and "Last Name".
 
-    **Example:** `"Mary Jane Watson"` → First: `"Mary"`, Last: `"Jane Watson"`
+    **Example:** `"Mary Jane Watson"` -> First: `"Mary"`, Last: `"Jane Watson"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="sn")
     if fi:
@@ -788,15 +786,15 @@ elif tool == TOOLS[15]:
             dl(result, "with split names", "names_split.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Standardise Phone Numbers
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[16]:
     st.header("\U0001f4de Standardise Phone Numbers")
     st.markdown("""
     **What it does:** Strips all formatting, keeping only digits and `+`.
 
-    **Example:** `"+1 (555) 123-4567"` → `"+15551234567"`
+    **Example:** `"+1 (555) 123-4567"` -> `"+15551234567"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="sp")
     if fi:
@@ -810,17 +808,17 @@ elif tool == TOOLS[16]:
             dl(result, "cleaned phones", "phones_clean.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Standardise URLs
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[17]:
     st.header("\U0001f517 Standardise URLs")
     st.markdown("""
     **What it does:** Normalises URLs by removing `http://`, `https://`, `www.`, trailing slashes.
 
-    **Example (Website):** `"https://www.acme.com/"` → `"acme.com"`
+    **Example (Website):** `"https://www.acme.com/"` -> `"acme.com"`
 
-    **Example (LinkedIn):** `"https://www.linkedin.com/in/johnsmith/"` → `"linkedin.com/in/johnsmith"`
+    **Example (LinkedIn):** `"https://www.linkedin.com/in/johnsmith/"` -> `"linkedin.com/in/johnsmith"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="sw")
     if fi:
@@ -835,17 +833,17 @@ elif tool == TOOLS[17]:
             dl(result, "standardised", "urls_clean.csv")
 
 
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 # Value Standardiser
-# ══════════════════════════════════════════════════════════
+# ======================================================================
 elif tool == TOOLS[18]:
     st.header("\U0001f3af Value Standardiser")
     st.markdown("""
     **What it does:** Matches raw, messy values against a list of standard terms you define.
     Uses three strategies in order:
-    1. **Exact match** (case-insensitive) → 100%
-    2. **Keyword match** (alias found inside raw value) → 90%
-    3. **Fuzzy match** (Levenshtein similarity) → configurable threshold
+    1. **Exact match** (case-insensitive) -> 100%
+    2. **Keyword match** (alias found inside raw value) -> 90%
+    3. **Fuzzy match** (Levenshtein similarity) -> configurable threshold
 
     **How to set up your rules CSV:**
 
