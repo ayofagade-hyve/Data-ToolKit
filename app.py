@@ -259,19 +259,29 @@ elif tool == TOOLS[1]:
                     st.error("Please enter at least **2** labels.")
                 else:
                     model_id = MODEL_OPTIONS[model_choice]
-
+                    # Combine selected columns into one text column
+                    if len(text_cols) == 1:
+                        classify_col = text_cols[0]
+                    else:
+                        df["_AI_Combined"] = df[text_cols].fillna("").astype(str).apply(
+                            lambda row: " | ".join(v for v in row if v.strip()), axis=1
+                        )
+                        classify_col = "_AI_Combined"
                     from tools.ai_classifier import classify_column
 
                     with st.spinner(f"Classifying {len(df):,} rows using `{model_id}` via the Hugging Face API\u2026 This may take a moment if the model is loading for the first time."):
                         result_df, summary = classify_column(
                             df,
-                            text_col,
+                            classify_col,
                             labels,
                             api_token=api_token.strip(),
                             model_id=model_id,
                             multi_label=multi_label,
                             confidence_threshold=confidence_threshold,
                         )
+
+                    if "_AI_Combined" in result_df.columns:
+                        result_df.drop(columns=["_AI_Combined"], inplace=True)
 
                     classified_count = summary.get("Classified (confident)", 0)
                     error_count = summary.get("Errors", 0)
