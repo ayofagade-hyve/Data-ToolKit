@@ -199,20 +199,7 @@ elif tool == TOOLS[1]:
     → each row is tagged with the best-matching label.
     """)
 
-    st.info(
-        "\U0001f511 **Get a free token in 30 seconds:** "
-        "[Sign up at huggingface.co](https://huggingface.co/join) → "
-        "[Settings → Access Tokens](https://huggingface.co/settings/tokens) → "
-        "Create a new token with **Read** permission → paste it below."
-    )
-
-    api_token = st.text_input(
-        "Hugging Face API Token",
-        type="password",
-        placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        help="Your token is never stored. It's only used to authenticate API calls during this session.",
-        key="ai_token",
-    )
+   api_token = st.secrets.get("HF_TOKEN", "")
 
     fi = st.file_uploader("Upload CSV", type="csv", key="ai_file")
 
