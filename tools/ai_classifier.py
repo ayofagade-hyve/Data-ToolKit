@@ -1,40 +1,84 @@
-"""AI Column Classifier — zero-shot classification via Hugging Face Transformers."""
+"""AI Column Classifier — zero-shot classification via Hugging Face Inference API."""
 
+import time
+import requests
 import pandas as pd
 
+API_URL = "https://api-inference.huggingface.co/models/{model_id}"
 
-def classify_column(df, text_col, labels, classifier,
+
+def classify_text(text, labels, api_token,
+                  model_id="facebook/bart-large-mnli",
+                  multi_label=False):
+    """
+    Classify a single text string against candidate labels using the
+    Hugging Face Inference API (free tier).
+
+    Returns
+    -------
+    dict  –  {"label": str, "confidence": float}
+    """
+    url = API_URL.format(model_id=model_id)
+    headers = {"Authorization": f"Bearer {api_token}"}
+    payload = {
+        "inputs": text,
+        "parameters": {
+            "candidate_labels": labels,
+            "multi_label": multi_label,
+        },
+    }
+
+    for attempt in range(3):
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=60)
+
+            if resp.status_code == 503:
+                # Model is loading — wait and retry
+                wait = 10 if attempt == 0 else 20
+                time.sleep(wait)
+                continue
+
+            if resp.status_code == 429:
+                # Rate-limited — back off
+                time.sleep(5)
+                continue
+
+            resp.raise_for_status()
+            data = resp.json()
+
+            # The API returns {"sequence": ..., "labels": [...], "scores": [...]}
+            top_label = data["labels"][0]
+            top_score = round(data["scores"][0], 3)
+            return {"label": top_label, "confidence": top_score}
+
+        except Exception:
+            time.sleep(3)
+            continue
+
+    return {"label": "Error", "confidence": 0.0}
+
+
+def classify_column(df, text_col, labels, api_token,
+                    model_id="facebook/bart-large-mnli",
                     multi_label=False,
-                    hypothesis_template="This text is about {}.",
                     confidence_threshold=0.3):
     """
-    Classify every value in *text_col* into one of *labels* using a
-    Hugging Face zero-shot-classification pipeline.
+    Classify every value in *text_col* using the HF Inference API.
 
     Parameters
     ----------
     df : pd.DataFrame
-        The source data.
     text_col : str
-        Name of the column whose values will be classified.
     labels : list[str]
-        Candidate class labels (e.g. ["Tech", "Finance", "Healthcare"]).
-    classifier : transformers.Pipeline
-        A preloaded ``pipeline("zero-shot-classification", …)`` object.
+    api_token : str           – Hugging Face API token (free).
+    model_id : str            – HF model repo id.
     multi_label : bool
-        If True each label is scored independently (scores won't sum to 1).
-    hypothesis_template : str
-        Template used internally by the model.  Must contain ``{}``.
     confidence_threshold : float
-        Rows whose top score falls below this value are prefixed "Uncertain".
 
     Returns
     -------
-    result_df : pd.DataFrame
-        Original dataframe with two new columns:
-        ``AI_Classification`` and ``AI_Confidence``.
+    result_df : pd.DataFrame  – original df + AI_Classification, AI_Confidence
     summary : dict
-        Metrics dict compatible with the toolkit's ``show_summary()`` helper.
     """
     rows_before = len(df)
     classifications = []
@@ -43,6 +87,7 @@ def classify_column(df, text_col, labels, classifier,
     empty_count = 0
     uncertain_count = 0
     classified_count = 0
+    error_count = 0
 
     texts = df[text_col].fillna("").astype(str).tolist()
 
@@ -53,22 +98,26 @@ def classify_column(df, text_col, labels, classifier,
             empty_count += 1
             continue
 
-        result = classifier(
-            text,
-            candidate_labels=labels,
+        result = classify_text(
+            text, labels, api_token,
+            model_id=model_id,
             multi_label=multi_label,
-            hypothesis_template=hypothesis_template,
         )
-        top_label = result["labels"][0]
-        top_score = round(result["scores"][0], 3)
 
-        if top_score < confidence_threshold:
-            classifications.append(f"Uncertain ({top_label})")
-            confidences.append(top_score)
+        lbl = result["label"]
+        score = result["confidence"]
+
+        if lbl == "Error":
+            classifications.append("Error")
+            confidences.append(0.0)
+            error_count += 1
+        elif score < confidence_threshold:
+            classifications.append(f"Uncertain ({lbl})")
+            confidences.append(score)
             uncertain_count += 1
         else:
-            classifications.append(top_label)
-            confidences.append(top_score)
+            classifications.append(lbl)
+            confidences.append(score)
             classified_count += 1
 
     result_df = df.copy()
@@ -83,6 +132,7 @@ def classify_column(df, text_col, labels, classifier,
         "Classified (confident)": classified_count,
         "Uncertain (below threshold)": uncertain_count,
         "Empty / skipped": empty_count,
+        "Errors": error_count,
     }
     return result_df, summary
 
