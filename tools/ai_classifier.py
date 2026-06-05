@@ -1,4 +1,4 @@
-ai_classifier_code = '''"""AI Column Classifier — zero-shot classification via Hugging Face Inference API.
+"""AI Column Classifier — zero-shot classification via Hugging Face Inference API.
 
 Speed optimisations
 -------------------
@@ -16,7 +16,7 @@ API_URL = "https://api-inference.huggingface.co/models/{model_id}"
 MAX_WORKERS = 10  # parallel API calls
 
 
-# ── single-text classification ──────────────────────────────────────
+# -- single-text classification -----------------------------------------------
 def classify_text(text, labels, api_token,
                   model_id="facebook/bart-large-mnli",
                   multi_label=False):
@@ -26,7 +26,7 @@ def classify_text(text, labels, api_token,
 
     Returns
     -------
-    dict  –  {"label": str, "confidence": float}
+    dict  --  {"label": str, "confidence": float}
     """
     url = API_URL.format(model_id=model_id)
     headers = {"Authorization": f"Bearer {api_token}"}
@@ -43,13 +43,13 @@ def classify_text(text, labels, api_token,
             resp = requests.post(url, headers=headers, json=payload, timeout=60)
 
             if resp.status_code == 503:
-                # Model is waking up – wait and retry
+                # Model is waking up -- wait and retry
                 wait = 15 if attempt == 0 else 25
                 time.sleep(wait)
                 continue
 
             if resp.status_code == 429:
-                # Rate-limited – back off
+                # Rate-limited -- back off
                 time.sleep(5)
                 continue
 
@@ -67,7 +67,7 @@ def classify_text(text, labels, api_token,
     return {"label": "Error", "confidence": 0.0}
 
 
-# ── classify an entire column (fast) ────────────────────────────────
+# -- classify an entire column (fast) -----------------------------------------
 def classify_column(df, text_col, labels, api_token,
                     model_id="facebook/bart-large-mnli",
                     multi_label=False,
@@ -82,17 +82,17 @@ def classify_column(df, text_col, labels, api_token,
 
     Returns
     -------
-    result_df : pd.DataFrame  – original df + AI_Classification, AI_Confidence
+    result_df : pd.DataFrame  -- original df + AI_Classification, AI_Confidence
     summary : dict
     """
     rows_before = len(df)
     texts = df[text_col].fillna("").astype(str).tolist()
 
-    # ── Step 1: deduplicate ──────────────────────────────────────
+    # -- Step 1: deduplicate ---------------------------------------------------
     unique_texts = list({t.strip() for t in texts if t.strip() != ""})
     total_non_empty = sum(1 for t in texts if t.strip() != "")
 
-    # ── Step 2: classify unique values in parallel ───────────────
+    # -- Step 2: classify unique values in parallel ----------------------------
     lookup = {}
 
     def _classify_one(text):
@@ -108,7 +108,7 @@ def classify_column(df, text_col, labels, api_token,
             text, result = future.result()
             lookup[text] = result
 
-    # ── Step 3: map results back to every row ────────────────────
+    # -- Step 3: map results back to every row ---------------------------------
     classifications = []
     confidences = []
     empty_count = 0
@@ -160,7 +160,7 @@ def classify_column(df, text_col, labels, api_token,
     return result_df, summary
 
 
-# ── helper ───────────────────────────────────────────────────────────
+# -- helper --------------------------------------------------------------------
 def classification_summary(df):
     """Return a value-counts DataFrame of the AI_Classification column."""
     if "AI_Classification" not in df.columns:
@@ -168,23 +168,3 @@ def classification_summary(df):
     counts = df["AI_Classification"].value_counts().reset_index()
     counts.columns = ["Category", "Count"]
     return counts
-'''
-
-with open("ai_classifier.py", "w", encoding="utf-8") as f:
-    f.write(ai_classifier_code)
-
-print("✅ ai_classifier.py written successfully")
-print(f"   Size: {len(ai_classifier_code):,} characters")
-print()
-print("=== SPEED COMPARISON ===")
-print()
-print("Example: 5,000 rows with 200 unique job titles")
-print()
-print("BEFORE (old version):")
-print("  • 5,000 API calls (one per row)")
-print("  • ~1 second each = ~83 minutes")
-print()
-print("AFTER (new version):")
-print("  • 200 API calls (one per unique value)")
-print("  • 10 in parallel = ~20 seconds")
-print("  • That's ~250x faster")
