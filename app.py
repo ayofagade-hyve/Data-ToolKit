@@ -70,21 +70,6 @@ def get_target_columns(key_prefix):
         return None
 
 
-# ── Cached AI model loader ──────────────────────────────────────────
-MODEL_OPTIONS = {
-    "valhalla/distilbart-mnli-12-3 (Recommended \u2014 balanced)": "valhalla/distilbart-mnli-12-3",
-    "facebook/bart-large-mnli (Most accurate \u2014 large)": "facebook/bart-large-mnli",
-    "typeform/distilbart-mnli-12-1 (Fastest \u2014 lightweight)": "typeform/distilbart-mnli-12-1",
-}
-
-
-@st.cache_resource
-def load_classifier(model_id="valhalla/distilbart-mnli-12-3"):
-    """Download & cache a zero-shot classification pipeline."""
-    from transformers import pipeline as hf_pipeline
-    return hf_pipeline("zero-shot-classification", model=model_id)
-
-
 # ======================================================================
 # HOME
 # ======================================================================
@@ -113,7 +98,7 @@ if tool == TOOLS[0]:
 
     tool_cards = [
         ("\U0001f916", "AI Column Classifier",
-         "Uses AI (zero-shot classification) to automatically categorise values in any text column into custom labels you define \u2014 no training data needed.",
+         "Uses AI (zero-shot classification) to automatically categorise values in any text column into custom labels you define \u2014 no training data needed. Powered by the free Hugging Face Inference API.",
          "You have a column of free-text job descriptions and want to tag each as \u2018Technical\u2019, \u2018Business\u2019, \u2018Creative\u2019, or \u2018Support\u2019 \u2014 just type your labels and the AI classifies every row."),
         ("\U0001f3e2", "Classify Organisation Type",
          "Automatically tags each company with an organisation type (e.g. Bank, Fintech, Insurance, VC, Retailer) based on industry, company name, job titles, and other available fields.",
@@ -189,7 +174,7 @@ if tool == TOOLS[0]:
     - **Fuzzy matching**: Uses Levenshtein distance — adjust the threshold slider to be stricter (100% = exact only) or more lenient (50% = loose matching)
     - **Large files**: All tools handle 100K+ rows. Fuzzy matching may take a moment on very large datasets
     - **Encoding issues?** Run "Fix Encoding" first before other tools if you see garbled characters
-    - **AI Classifier**: Uses a free, open-source Hugging Face model — first run downloads the model (~500 MB), then it's cached for instant reuse
+    - **AI Classifier**: Uses the free Hugging Face Inference API — you just need a free API token (takes 30 seconds to set up)
     """)
 
 # ======================================================================
@@ -201,18 +186,33 @@ elif tool == TOOLS[1]:
     **What it does:** Uses AI (zero-shot classification) to automatically categorise
     values in any text column into custom labels you define — **no training data needed**.
 
-    Powered by a free, open-source [Hugging Face](https://huggingface.co/) model that
-    runs locally. No API key required. No data leaves your machine.
+    Powered by the free [Hugging Face Inference API](https://huggingface.co/inference-api).
+    No heavy libraries to install. No data stored. You just need a free API token.
 
     **How it works:**
-    1. Upload a CSV
-    2. Pick the text column to classify (e.g. Job Title, Description, Notes)
+    1. Paste your free Hugging Face API token below
+    2. Upload a CSV and pick the text column to classify
     3. Type your labels (e.g. `Tech, Finance, Healthcare, Education`)
     4. Click **Classify Now** — every row gets a label and a confidence score
 
     **Example:** Column `"Company Description"` with labels `Technical, Business, Creative, Support`
     → each row is tagged with the best-matching label.
     """)
+
+    st.info(
+        "\U0001f511 **Get a free token in 30 seconds:** "
+        "[Sign up at huggingface.co](https://huggingface.co/join) → "
+        "[Settings → Access Tokens](https://huggingface.co/settings/tokens) → "
+        "Create a new token with **Read** permission → paste it below."
+    )
+
+    api_token = st.text_input(
+        "Hugging Face API Token",
+        type="password",
+        placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        help="Your token is never stored. It's only used to authenticate API calls during this session.",
+        key="ai_token",
+    )
 
     fi = st.file_uploader("Upload CSV", type="csv", key="ai_file")
 
@@ -232,7 +232,7 @@ elif tool == TOOLS[1]:
         with st.expander("\u2699\ufe0f Advanced Options"):
             multi_label = st.checkbox(
                 "Allow multiple labels per row",
-                help="If checked, each label is scored independently (scores won't sum to 1).",
+                help="If checked, each label is scored independently (scores won\u2019t sum to 1).",
                 key="ai_multi",
             )
             confidence_threshold = st.slider(
@@ -241,101 +241,61 @@ elif tool == TOOLS[1]:
                 help="Rows below this confidence will be prefixed \u2018Uncertain\u2019.",
                 key="ai_conf",
             )
-            hypothesis_template = st.text_input(
-                "Hypothesis template",
-                value="This text is about {}.",
-                help="How the AI frames each label internally. The {} is replaced with each label.",
-                key="ai_hypo",
-            )
+
+            MODEL_OPTIONS = {
+                "facebook/bart-large-mnli (Most accurate)": "facebook/bart-large-mnli",
+                "valhalla/distilbart-mnli-12-3 (Balanced)": "valhalla/distilbart-mnli-12-3",
+                "typeform/distilbart-mnli-12-1 (Fastest)": "typeform/distilbart-mnli-12-1",
+            }
             model_choice = st.selectbox(
                 "Model",
                 list(MODEL_OPTIONS.keys()),
                 index=0,
-                help="Larger models are more accurate but slower and use more memory.",
+                help="All models are free. Larger models are more accurate but may be slower on the API.",
                 key="ai_model",
             )
 
         # Run
         if labels_input and st.button("\U0001f680 Classify Now", type="primary", key="ai_run"):
-            labels = [l.strip() for l in labels_input.split(",") if l.strip()]
-
-            if len(labels) < 2:
-                st.error("Please enter at least **2** labels.")
+            if not api_token or not api_token.strip():
+                st.warning("\u26a0\ufe0f Please enter your Hugging Face API token above.")
             else:
-                model_id = MODEL_OPTIONS[model_choice]
-                with st.spinner(f"Loading AI model (`{model_id}`) \u2014 first run downloads ~500 MB, then it\u2019s cached\u2026"):
-                    classifier = load_classifier(model_id)
+                labels = [l.strip() for l in labels_input.split(",") if l.strip()]
 
-                from tools.ai_classifier import classify_column, classification_summary
+                if len(labels) < 2:
+                    st.error("Please enter at least **2** labels.")
+                else:
+                    model_id = MODEL_OPTIONS[model_choice]
 
-                # Progress bar
-                progress_bar = st.progress(0)
-                status_text = st.empty()
+                    from tools.ai_classifier import classify_column
 
-                # Classify row-by-row so we can update the progress bar
-                rows_before = len(df)
-                classifications = []
-                confidences = []
-                empty_count = 0
-                uncertain_count = 0
-                classified_count = 0
-
-                texts = df[text_col].fillna("").astype(str).tolist()
-
-                for i, text in enumerate(texts):
-                    if text.strip() == "":
-                        classifications.append("Empty")
-                        confidences.append(0.0)
-                        empty_count += 1
-                    else:
-                        result = classifier(
-                            text,
-                            candidate_labels=labels,
+                    with st.spinner(f"Classifying {len(df):,} rows using `{model_id}` via the Hugging Face API\u2026 This may take a moment if the model is loading for the first time."):
+                        result_df, summary = classify_column(
+                            df,
+                            text_col,
+                            labels,
+                            api_token=api_token.strip(),
+                            model_id=model_id,
                             multi_label=multi_label,
-                            hypothesis_template=hypothesis_template,
+                            confidence_threshold=confidence_threshold,
                         )
-                        top_label = result["labels"][0]
-                        top_score = round(result["scores"][0], 3)
 
-                        if top_score < confidence_threshold:
-                            classifications.append(f"Uncertain ({top_label})")
-                            confidences.append(top_score)
-                            uncertain_count += 1
-                        else:
-                            classifications.append(top_label)
-                            confidences.append(top_score)
-                            classified_count += 1
+                    classified_count = summary.get("Classified (confident)", 0)
+                    error_count = summary.get("Errors", 0)
 
-                    progress_bar.progress((i + 1) / len(texts))
-                    status_text.text(f"Classifying row {i + 1:,} of {len(texts):,}\u2026")
+                    if error_count > 0:
+                        st.warning(f"\u26a0\ufe0f {error_count} row(s) failed to classify. Check your API token and try again, or switch to a different model.")
 
-                result_df = df.copy()
-                result_df["AI_Classification"] = classifications
-                result_df["AI_Confidence"] = confidences
+                    st.success(f"\u2705 Classification complete! {classified_count:,} rows classified confidently.")
+                    show_summary(summary)
+                    st.dataframe(result_df.head(100), use_container_width=True)
 
-                summary = {
-                    "Tool": "AI Column Classifier",
-                    "Rows before": rows_before,
-                    "Rows after": rows_before,
-                    "Rows removed / changed": f"{classified_count + uncertain_count} classified",
-                    "Classified (confident)": classified_count,
-                    "Uncertain (below threshold)": uncertain_count,
-                    "Empty / skipped": empty_count,
-                }
+                    # Distribution chart
+                    st.subheader("\U0001f4ca Classification Distribution")
+                    dist = result_df["AI_Classification"].value_counts()
+                    st.bar_chart(dist)
 
-                progress_bar.empty()
-                status_text.empty()
-
-                st.success(f"\u2705 Classification complete! {classified_count:,} rows classified confidently.")
-                show_summary(summary)
-                st.dataframe(result_df.head(100), use_container_width=True)
-
-                # Distribution chart
-                st.subheader("\U0001f4ca Classification Distribution")
-                dist = result_df["AI_Classification"].value_counts()
-                st.bar_chart(dist)
-
-                dl(result_df, "classified CSV", "ai_classified.csv")
+                    dl(result_df, "classified CSV", "ai_classified.csv")
 
 # ======================================================================
 # Classify Organisation Type
