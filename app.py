@@ -78,6 +78,7 @@ if tool == TOOLS[0]:
     st.markdown("""
     Welcome! This toolkit gives you **19 powerful data-cleaning tools** in one simple web app.
     No coding needed — just upload your CSV, pick a tool, configure it, and download clean results.
+    Training Videos can be found [Here](https://iteevents-my.sharepoint.com/:f:/g/personal/ayo_fagade_hyve_group/IgAWjPM84OZ8QIy6vfPP-8yBAa9A-hb-FJlnzVu9BbuUegQ?e=3Zo1WV)
     """)
 
     st.markdown("---")
