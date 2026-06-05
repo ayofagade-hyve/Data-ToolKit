@@ -199,7 +199,7 @@ elif tool == TOOLS[1]:
     → each row is tagged with the best-matching label.
     """)
 
-api_token = st.secrets.get("HF_TOKEN", "")
+    api_token = st.secrets.get("HF_TOKEN", "")
 
     fi = st.file_uploader("Upload CSV", type="csv", key="ai_file")
 
