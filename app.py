@@ -187,7 +187,7 @@ elif tool == TOOLS[1]:
     values in any text column into custom labels you define — **no training data needed**.
 
     Powered by the free [Hugging Face Inference API](https://huggingface.co/inference-api).
-    No heavy libraries to install. No data stored. You just need a free API token.
+    
 
     **How it works:**
     1. Paste your free Hugging Face API token below
