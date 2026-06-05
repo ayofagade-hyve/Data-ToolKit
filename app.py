@@ -208,7 +208,12 @@ elif tool == TOOLS[1]:
         df = load_csv(fi)
         st.dataframe(df.head(10), use_container_width=True)
 
-        text_col = st.selectbox("Column to classify", df.columns, key="ai_col")
+        text_cols = st.multiselect(
+            "Columns to classify (select multiple for richer context)",
+            df.columns,
+            help="Selecting multiple columns (e.g. Job Title + Company + Website) gives the AI more context for better accuracy.",
+            key="ai_col",
+            )
 
         labels_input = st.text_input(
             "Classification labels (comma-separated)",
