@@ -11,9 +11,9 @@ def render_value_classifier():
     and manually map them to new categories/groups.
     """
 
-    st.header("\U0001f3f7\ufe0f Value Classifier")
+    st.header("🏷️ Value Classifier")
 
-    with st.expander("\u2139\ufe0f How it works", expanded=False):
+    with st.expander("ℹ️ How it works", expanded=False):
         st.markdown(
             """
             **This tool lets you reclassify values in any column of your data.**
@@ -21,7 +21,7 @@ def render_value_classifier():
             1. **Upload** your CSV or Excel file.
             2. **Select** the column you want to reclassify.
             3. **Review** all the unique values found in that column (with counts).
-            4. **Map** each value to a new category \u2014 either one-by-one or by
+            4. **Map** each value to a new category — either one-by-one or by
                grouping multiple values together.
             5. **Download** the result with a new column containing your classifications.
 
@@ -43,10 +43,10 @@ def render_value_classifier():
     st.divider()
 
     # ------------------------------------------------------------------ #
-    # STEP 1 \u2014 File upload
+    # STEP 1 — File upload
     # ------------------------------------------------------------------ #
     uploaded_file = st.file_uploader(
-        "\U0001f4c2 Upload your file (CSV or Excel)",
+        "📂 Upload your file (CSV or Excel)",
         type=["csv", "xlsx", "xls"],
         key="vc_file_upload",
     )
@@ -69,13 +69,13 @@ def render_value_classifier():
         st.error(f"Could not read file: {e}")
         return
 
-    st.success(f"Loaded **{len(df):,}** rows \u00d7 **{len(df.columns)}** columns")
+    st.success(f"Loaded **{len(df):,}** rows × **{len(df.columns)}** columns")
 
     # ------------------------------------------------------------------ #
-    # STEP 2 \u2014 Column selection
+    # STEP 2 — Column selection
     # ------------------------------------------------------------------ #
     column = st.selectbox(
-        "\U0001f50e Select the column to classify",
+        "🔎 Select the column to classify",
         options=df.columns.tolist(),
         key="vc_column_select",
     )
@@ -83,7 +83,7 @@ def render_value_classifier():
         return
 
     # ------------------------------------------------------------------ #
-    # STEP 3 \u2014 Extract unique values & counts
+    # STEP 3 — Extract unique values & counts
     # ------------------------------------------------------------------ #
     series = df[column].copy()
     series_str = series.fillna("(blank)").astype(str)
@@ -95,7 +95,7 @@ def render_value_classifier():
     st.markdown(f"**{len(value_counts)}** unique values found in column `{column}`")
 
     # ------------------------------------------------------------------ #
-    # STEP 4 \u2014 Mapping mode
+    # STEP 4 — Mapping mode
     # ------------------------------------------------------------------ #
     mode = st.radio(
         "Choose a mapping mode:",
@@ -143,7 +143,7 @@ def render_value_classifier():
             new_group = st.text_input("New group name", key="vc_new_group", placeholder="e.g. Software")
         with col_add2:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("\u2795 Add Group", key="vc_add_group"):
+            if st.button("➕ Add Group", key="vc_add_group"):
                 if new_group and new_group not in st.session_state["vc_groups"]:
                     st.session_state["vc_groups"].append(new_group)
                     st.rerun()
@@ -153,7 +153,7 @@ def render_value_classifier():
             already_assigned = set()
             for group in st.session_state["vc_groups"]:
                 selected = st.multiselect(
-                    f"\U0001f4c1 **{group}** \u2014 select values to include:",
+                    f"📁 **{group}** — select values to include:",
                     options=unique_vals,
                     key=f"vc_group_{group}",
                 )
@@ -163,16 +163,16 @@ def render_value_classifier():
             unassigned = [v for v in unique_vals if v not in already_assigned]
             if unassigned:
                 st.caption(
-                    f"\u2139\ufe0f {len(unassigned)} value(s) not assigned to any group "
-                    f"\u2014 they will keep their original value."
+                    f"ℹ️ {len(unassigned)} value(s) not assigned to any group "
+                    f"— they will keep their original value."
                 )
                 with st.expander("Show unassigned values"):
                     st.write(unassigned)
         else:
-            st.info('Add at least one group using the field above, then click "\u2795 Add Group".')
+            st.info('Add at least one group using the field above, then click "➕ Add Group".')
 
     # ------------------------------------------------------------------ #
-    # STEP 5 \u2014 Apply mapping
+    # STEP 5 — Apply mapping
     # ------------------------------------------------------------------ #
     st.divider()
     if not mapping:
@@ -188,18 +188,18 @@ def render_value_classifier():
         key="vc_new_col_name",
     )
 
-    if st.button("\U0001f680 Apply Classification", type="primary", key="vc_apply"):
+    if st.button("🚀 Apply Classification", type="primary", key="vc_apply"):
         df[new_col_name] = series_str.map(lambda v: mapping.get(v, v))
         df[new_col_name] = df[new_col_name].replace("(blank)", pd.NA)
         st.session_state["vc_result_df"] = df
         st.session_state["vc_applied"] = True
 
     # ------------------------------------------------------------------ #
-    # STEP 6 \u2014 Preview & Download
+    # STEP 6 — Preview & Download
     # ------------------------------------------------------------------ #
     if st.session_state.get("vc_applied"):
         result_df = st.session_state["vc_result_df"]
-        st.subheader("\u2705 Result Preview")
+        st.subheader("✅ Result Preview")
         st.dataframe(result_df.head(50), use_container_width=True)
 
         st.markdown(f"**Distribution of `{new_col_name}`:**")
@@ -211,7 +211,7 @@ def render_value_classifier():
         with col_dl1:
             csv_data = result_df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                "\u2b07\ufe0f Download CSV",
+                "⬇️ Download CSV",
                 data=csv_data,
                 file_name="classified_output.csv",
                 mime="text/csv",
@@ -222,7 +222,7 @@ def render_value_classifier():
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
                 result_df.to_excel(writer, index=False, sheet_name="Classified")
             st.download_button(
-                "\u2b07\ufe0f Download Excel",
+                "⬇️ Download Excel",
                 data=buffer.getvalue(),
                 file_name="classified_output.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
