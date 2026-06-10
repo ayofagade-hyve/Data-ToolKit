@@ -442,74 +442,45 @@ Respond with this JSON structure:
 Use the EXACT column names from the list. If a column can't be identified, use your best guess from the available columns."""
 
 
-def parse_with_gemini(user_input: str, columns: list, api_key: str,
-                       model: str = "gemini-2.0-flash") -> Optional[ParsedCommand]:
-    """Parse a command using Google Gemini AI.
-    
-    Args:
-        user_input: Natural language command
-        columns: List of column names in the DataFrame
-        api_key: Google Gemini API key
-        model: Model name (default gemini-2.0-flash)
-    
-    Returns:
-        ParsedCommand if successful, None if failed
-    """
+def parse_with_ai(user_input, columns, api_key, model="llama-3.3-70b-versatile", provider="groq"):
+    """Parse a command using AI (Groq or Gemini)."""
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        
-        prompt = GEMINI_PROMPT_TEMPLATE.format(
-            columns=", ".join(columns),
-            user_input=user_input
-        )
-        
-        gen_model = genai.GenerativeModel(model)
-        response = gen_model.generate_content(prompt)
-        
-        # Parse JSON from response
-        response_text = response.text.strip()
-        # Strip markdown code fences if present
-        if response_text.startswith("```"):
-            response_text = re.sub(r'^```(?:json)?\n?', '', response_text)
-            response_text = re.sub(r'\n?```$', '', response_text)
-        
-        data = json.loads(response_text)
-        
-        cmd = ParsedCommand(
-            action=data.get("action", ""),
-            column=data.get("column", ""),
-            value=data.get("value", ""),
-            value2=data.get("value2", ""),
-            condition=data.get("condition", ""),
-            case_mode=data.get("case_mode", ""),
-            sort_order=data.get("sort_order", "asc"),
-            confidence=0.80,
-            source="ai",
-            raw_input=user_input,
-            extra=data.get("extra", {}),
-        )
-        
-        if not cmd.action:
-            return None
-        return cmd
-        
-    except ImportError:
-        return ParsedCommand(
-            raw_input=user_input, source="ai",
-            error="google-generativeai package not installed. Run: pip install google-generativeai"
-        )
-    except json.JSONDecodeError:
-        return ParsedCommand(
-            raw_input=user_input, source="ai",
-            error="AI returned invalid JSON. Try rephrasing your command."
-        )
-    except Exception as e:
-        return ParsedCommand(
-            raw_input=user_input, source="ai",
-            error=f"AI error: {str(e)}"
-        )
+        if provider == "groq":
+            from openai import OpenAI
+            client = OpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=api_key,
+            )
+            prompt = GEMINI_PROMPT.format(columns=", ".join(columns), user_input=user_input)
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+            )
+            text = response.choices[0].message.content.strip()
+        else:
+            # Gemini fallback
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            prompt = GEMINI_PROMPT.format(columns=", ".join(columns), user_input=user_input)
+            gen_model = genai.GenerativeModel(model)
+            response = gen_model.generate_content(prompt)
+            text = response.text.strip()
 
+        if text.startswith("```"):
+            text = re.sub(r'^```(?:json)?\n?', '', text)
+            text = re.sub(r'\n?```$', '', text)
+        data = json.loads(text)
+        cmd = ParsedCommand(
+            action=data.get("action", ""), column=data.get("column", ""),
+            value=data.get("value", ""), value2=data.get("value2", ""),
+            condition=data.get("condition", ""), case_mode=data.get("case_mode", ""),
+            sort_order=data.get("sort_order", "asc"), confidence=0.80,
+            source="ai", raw_input=user_input, extra=data.get("extra", {}),
+        )
+        return cmd if cmd.action else None
+    except Exception as e:
+        return ParsedCommand(raw_input=user_input, source="ai", error=f"AI error: {e}")
 
 # ──────────────────────────────────────────────────────────────
 # Main parse function
