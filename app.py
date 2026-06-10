@@ -8,7 +8,7 @@ from utils.io_helpers import load_csv, to_csv_bytes, generate_summary
 st.set_page_config(page_title="Data Cleaning Toolkit", page_icon="\U0001f9f9", layout="wide")
 
 # Groq API key (free, 1000 req/day)
-AI_API_KEY = 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
+AI_API_KEY = "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"
 AI_PROVIDER = "groq"
 AI_MODEL = "llama-3.3-70b-versatile"
 
