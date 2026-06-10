@@ -1,10 +1,15 @@
-"""Data Cleaning & File Automation Toolkit — Streamlit App (19 tools)."""
+"""Data Cleaning & File Automation Toolkit — Streamlit App (21 tools)."""
 
 import streamlit as st
 import pandas as pd
+import re
 from utils.io_helpers import load_csv, to_csv_bytes, generate_summary
 
 st.set_page_config(page_title="Data Cleaning Toolkit", page_icon="\U0001f9f9", layout="wide")
+
+# Hard-coded Gemini API key for Formula Bar
+GEMINI_API_KEY = "AQ.Ab8RN6LN6DtVegYa1_19KiwnVYkG7Krn8bl6efmnz-dFVthPWQ"
+GEMINI_MODEL = "gemini-2.0-flash"
 
 TOOLS = [
     "\U0001f3e0 Home",
@@ -13,9 +18,11 @@ TOOLS = [
     "\U0001f500 Column Remapper",
     "\U0001f4ce Combine CSVs",
     "\u2696\ufe0f Compare & Remove",
+    "\U0001f4ca Data Quality Report",
     "\U0001f50d Deduplicate vs Master List",
     "\U0001f310 Extract Company Domains",
     "\U0001f524 Fix Encoding (Mojibake)",
+    "\u26a1 Formula Bar",
     "\U0001f504 Full Data Migration",
     "\U0001f501 Fuzzy Duplicate Finder",
     "\U0001f50e LinkedIn Search Links",
@@ -41,7 +48,10 @@ def show_summary(s):
             st.info(f"**{k}:** {v}")
 
 def dl(df, label, filename):
-    st.download_button(f"\u2b07\ufe0f Download {label}", to_csv_bytes(df), filename, "text/csv")
+    custom_name = st.text_input(f"File name for {label}", value=filename, key=f"dl_{filename}_{label}")
+    if not custom_name.endswith(".csv"):
+        custom_name += ".csv"
+    st.download_button(f"\u2b07\ufe0f Download {label}", to_csv_bytes(df), custom_name, "text/csv")
 
 def get_target_columns(key_prefix):
     """Let user either upload a template CSV or type column names manually."""
@@ -66,13 +76,14 @@ def get_target_columns(key_prefix):
             return [c.strip() for c in raw.split(",") if c.strip()]
         return None
 
+
 # ======================================================================
 # HOME
 # ======================================================================
 if tool == TOOLS[0]:
     st.title("\U0001f9f9 Data Cleaning & File Automation Toolkit")
     st.markdown("""
-    Welcome! This toolkit gives you **19 powerful data-cleaning tools** in one simple web app.
+    Welcome! This toolkit gives you **21 powerful data-cleaning tools** in one simple web app.
     No coding needed — just upload your CSV, pick a tool, configure it, and download clean results.
 
     Training Videos can be found [Here](https://iteevents-my.sharepoint.com/:f:/g/personal/ayo_fagade_hyve_group/IgAWjPM84OZ8QIy6vfPP-8yBAa9A-hb-FJlnzVu9BbuUegQ?e=3Zo1WV)
@@ -100,7 +111,7 @@ if tool == TOOLS[0]:
          "Reads each person\u2019s job title and automatically assigns a **seniority level** (C-level, VP, Director, Manager, Associate, Other) and a **job function** (Sales, Marketing, IT, Finance, Legal, HR, Operations, Product, etc.).",
          "You need to filter an event list to only VPs and above in Sales \u2014 this classifies everyone so you can filter instantly."),
         ("\U0001f500", "Column Remapper",
-         "Maps columns from a source CSV into a different output structure. For each output column, you pick which source column fills it \u2014 or set a custom default value. Auto-matches columns with the same name.",
+         "Maps columns from a source CSV into a different output structure. For each output column, you pick which source column fills it \u2014 or set a custom default value. Auto-matches columns with the same name. Also has a **Reorder & Remove** mode to quickly keep only the columns you need.",
          "Your event platform exports \u2018Organisation\u2019 but your CRM needs \u2018Company Name\u2019 \u2014 this remaps it without manual copy-pasting."),
         ("\U0001f4ce", "Combine CSVs",
          "Merges multiple CSV files into a single file, stacking all rows together. Handles mismatched columns gracefully.",
@@ -108,6 +119,9 @@ if tool == TOOLS[0]:
         ("\u2696\ufe0f", "Compare & Remove",
          "Compares a column in your source file against a column in a lookup file, and removes any matching rows from the source.",
          "You have a \u2018do not contact\u2019 list and need to remove those people from your outreach file \u2014 upload both and it strips them out."),
+        ("\U0001f4ca", "Data Quality Report",
+         "Generates a full quality report for every column in your CSV \u2014 completeness %, blank count, unique values, top 5 values, and sample data. Instantly spots problem columns before you start cleaning.",
+         "You receive a raw data file and need to know which columns are 90% blank before running a migration \u2014 this tells you in seconds."),
         ("\U0001f50d", "Deduplicate vs Master List",
          "Compares a new contact list against your master database and removes anyone who already exists. Matches on **4 keys**: Email, LinkedIn URL, Name+Company, Name+Website.",
          "Before importing new leads into your CRM, check them against your existing database to avoid duplicates."),
@@ -117,6 +131,10 @@ if tool == TOOLS[0]:
         ("\U0001f524", "Fix Encoding (Mojibake)",
          "Repairs garbled/broken characters caused by encoding mismatches. Fixes broken accented characters back to their correct form.",
          "Your CSV export has names showing garbled characters \u2014 this fixes all of them automatically."),
+        ("\u26a1", "Formula Bar",
+         "Type plain English commands like \u2018remove rows where email contains test\u2019 and they execute instantly. "
+         "Built-in regex parser handles 15+ patterns for free; Gemini AI handles anything else. Includes undo, command history, and chaining.",
+         "Type \u2018delete rows where country is empty\u2019 \u2014 done. Then \u2018uppercase company\u2019 \u2014 done. Then \u2018sort by last name a-z\u2019 \u2014 done."),
         ("\U0001f504", "Full Data Migration",
          "A complete data transformation pipeline \u2014 all in one step. Combines **7 stages**: column remapping, fixed values, conditional IF/THEN/ELSE rules, auto-classification, value mapping, suppression splitting, and column cleanup.",
          "You receive a raw attendee export and need to remap it into CRM format, tag attendees by region, auto-classify job titles, reclassify values, separate opt-outs, and drop unwanted columns \u2014 all in one click."),
@@ -136,7 +154,7 @@ if tool == TOOLS[0]:
          "Deletes rows that are completely empty or contain only whitespace. Quick cleanup for messy exports.",
          "Your CRM export has 500 blank rows scattered throughout \u2014 this strips them all out instantly."),
         ("\U0001f464", "Standardise Names",
-         "Splits a \u2018Full Name\u2019 column into separate \u2018First Name\u2019 and \u2018Last Name\u2019 columns.",
+         "Splits a \u2018Full Name\u2019 column into separate \u2018First Name\u2019 and \u2018Last Name\u2019 columns. Also extracts names from email addresses (e.g. john.smith@acme.com \u2192 John Smith).",
          "Your list has \u2018Gary Dempsey\u2019 in one column but your CRM needs First Name and Last Name separately."),
         ("\U0001f4de", "Standardise Phone Numbers",
          "Strips all formatting from phone numbers, keeping only digits and the + symbol.",
@@ -148,7 +166,7 @@ if tool == TOOLS[0]:
          "Upload any spreadsheet, pick a column, and see every unique value with its count. Then map each value to a new category \u2014 either one-by-one in an editable table, or by creating named groups and assigning multiple values at once. No AI, no setup \u2014 just simple, manual control.",
          "Your Industry column has \u2018Fintech\u2019, \u2018InsurTech\u2019, \u2018SaaS\u2019, \u2018PaaS\u2019 \u2014 map them to \u2018Financial Services\u2019 and \u2018Software\u2019 in seconds."),
         ("\U0001f3af", "Value Standardiser",
-         "Matches raw, messy values against a list of standard terms you define. Uses exact match, keyword match, and fuzzy match (Levenshtein distance).",
+         "Matches raw, messy values against a list of standard terms you define. Uses exact match, keyword match, and fuzzy match (Levenshtein distance). Also has **Find & Replace** and **Case Converter** modes.",
          "Your Country column has \u2018UK\u2019, \u2018United Kingdom\u2019, \u2018england\u2019, \u2018Great Britain\u2019 \u2014 upload a standards list and it maps them all to \u2018United Kingdom\u2019."),
     ]
 
@@ -231,7 +249,7 @@ elif tool == TOOLS[2]:
             dl(result, "classified", "classified_jobs.csv")
 
 # ======================================================================
-# Column Remapper
+# Column Remapper (+ Reorder & Remove mode)
 # ======================================================================
 elif tool == TOOLS[3]:
     st.header("\U0001f500 Column Remapper")
@@ -250,28 +268,46 @@ elif tool == TOOLS[3]:
     if src_f:
         src = load_csv(src_f)
         src_cols = list(src.columns)
-        st.subheader("Define your output columns")
-        tgt_cols = get_target_columns("rm")
-        if tgt_cols:
-            st.subheader("Map each output column to a source column")
-            mapping = {}; defaults = {}
-            src_lower = {c.lower(): c for c in src_cols}
-            for tc in tgt_cols:
-                auto = src_lower.get(tc.lower(), "-- Leave empty --")
-                options = ["-- Leave empty --", "-- Custom default --"] + src_cols
-                idx = options.index(auto) if auto in options else 0
-                choice = st.selectbox(f"Output: **{tc}**", options, index=idx, key=f"rm_{tc}")
-                if choice == "-- Custom default --":
-                    val = st.text_input(f"Default value for {tc}", key=f"rm_def_{tc}")
-                    defaults[tc] = val
-                elif choice != "-- Leave empty --":
-                    mapping[tc] = choice
-            if st.button("Remap & Preview", key="rm_run"):
-                from tools.remap_columns import remap_columns
-                result, summary = remap_columns(src, tgt_cols, mapping, defaults)
-                show_summary(summary)
-                st.dataframe(result.head(100))
-                dl(result, "remapped CSV", "remapped.csv")
+
+        mode = st.radio("Mode", ["Remap to a new column structure", "Reorder & remove columns (keep what you need)"], key="rm_mode")
+
+        if mode.startswith("Remap"):
+            st.subheader("Define your output columns")
+            tgt_cols = get_target_columns("rm")
+            if tgt_cols:
+                st.subheader("Map each output column to a source column")
+                mapping = {}; defaults = {}
+                src_lower = {c.lower(): c for c in src_cols}
+                for tc in tgt_cols:
+                    auto = src_lower.get(tc.lower(), "-- Leave empty --")
+                    options = ["-- Leave empty --", "-- Custom default --"] + src_cols
+                    idx = options.index(auto) if auto in options else 0
+                    choice = st.selectbox(f"Output: **{tc}**", options, index=idx, key=f"rm_{tc}")
+                    if choice == "-- Custom default --":
+                        val = st.text_input(f"Default value for {tc}", key=f"rm_def_{tc}")
+                        defaults[tc] = val
+                    elif choice != "-- Leave empty --":
+                        mapping[tc] = choice
+                if st.button("Remap & Preview", key="rm_run"):
+                    from tools.remap_columns import remap_columns
+                    result, summary = remap_columns(src, tgt_cols, mapping, defaults)
+                    show_summary(summary)
+                    st.dataframe(result.head(100))
+                    dl(result, "remapped CSV", "remapped.csv")
+        else:
+            st.subheader("Select and reorder columns")
+            st.caption("Pick the columns you want to keep, in the order you want them. Everything else will be dropped.")
+            selected = st.multiselect("Columns to keep (in order)", options=src_cols, default=src_cols, key="rm_reorder_cols")
+            if selected:
+                for i, cn in enumerate(selected, 1):
+                    st.text(f"  {i}. {cn}")
+                if st.button("Apply & Preview", key="rm_reorder_run"):
+                    result = src[selected].copy()
+                    st.success(f"Kept {len(selected)} columns, removed {len(src_cols) - len(selected)}")
+                    st.dataframe(result.head(100))
+                    dl(result, "reordered CSV", "columns_reordered.csv")
+            else:
+                st.warning("Select at least one column.")
 
 # ======================================================================
 # Combine CSVs
@@ -325,9 +361,65 @@ elif tool == TOOLS[5]:
             if len(removed): dl(removed, "removed rows", "compare_removed.csv")
 
 # ======================================================================
-# Deduplicate vs Master List
+# Data Quality Report  ← NEW
 # ======================================================================
 elif tool == TOOLS[6]:
+    st.header("\U0001f4ca Data Quality Report")
+    st.markdown("""
+    **What it does:** Generates a full quality report for every column in your CSV —
+    completeness %, blank count, unique values, top 5 values, and a sample.
+
+    **When to use it:** Before running any migration or cleanup, check which columns
+    are mostly empty, which have messy data, and which are ready to go.
+
+    **Example:** You receive a raw export with 40 columns. This tells you instantly that
+    3 columns are 90%+ blank and can be dropped, and 5 columns need standardisation.
+    """)
+    fi = st.file_uploader("Upload CSV", type="csv", key="dq")
+    if fi:
+        df = load_csv(fi)
+        if st.button("Generate Report", key="dq_run"):
+            rows = len(df)
+            report_data = []
+            for col_name in df.columns:
+                series = df[col_name].fillna("").astype(str).str.strip()
+                non_blank = series[series != ""]
+                blank_count = rows - len(non_blank)
+                completeness = round((len(non_blank) / rows) * 100, 1) if rows > 0 else 0
+                unique_count = non_blank.nunique()
+                top_values = non_blank.value_counts().head(5)
+                top_str = ", ".join(f"{v} ({c})" for v, c in top_values.items())
+                sample = non_blank.iloc[0] if len(non_blank) > 0 else ""
+                report_data.append({
+                    "Column": col_name,
+                    "Completeness %": completeness,
+                    "Filled Rows": f"{len(non_blank):,}",
+                    "Blank Rows": f"{blank_count:,}",
+                    "Unique Values": f"{unique_count:,}",
+                    "Top 5 Values": top_str,
+                    "Sample": str(sample)[:80],
+                })
+            report_df = pd.DataFrame(report_data)
+
+            mc1, mc2, mc3 = st.columns(3)
+            mc1.metric("Total Rows", f"{rows:,}")
+            mc2.metric("Total Columns", f"{len(df.columns):,}")
+            mc3.metric("Avg Completeness", f"{report_df['Completeness %'].mean():.1f}%")
+
+            low_q = report_df[report_df["Completeness %"] < 50]
+            if len(low_q):
+                st.warning(f"\u26a0\ufe0f {len(low_q)} column(s) below 50% complete:")
+                for _, r in low_q.iterrows():
+                    st.markdown(f"- **{r['Column']}** — {r['Completeness %']}% ({r['Blank Rows']} blanks)")
+
+            st.subheader("Full Report")
+            st.dataframe(report_df, use_container_width=True)
+            dl(report_df, "quality report", "data_quality_report.csv")
+
+# ======================================================================
+# Deduplicate vs Master List
+# ======================================================================
+elif tool == TOOLS[7]:
     st.header("\U0001f50d Deduplicate vs Master List")
     st.markdown("""
     **What it does:** Compares a new contact list against your master database and removes
@@ -356,7 +448,7 @@ elif tool == TOOLS[6]:
 # ======================================================================
 # Extract Company Domains
 # ======================================================================
-elif tool == TOOLS[7]:
+elif tool == TOOLS[8]:
     st.header("\U0001f310 Extract Company Domains")
     st.markdown("""
     **What it does:** Finds the most common non-personal email domain per company.
@@ -383,7 +475,7 @@ elif tool == TOOLS[7]:
 # ======================================================================
 # Fix Encoding (Mojibake)
 # ======================================================================
-elif tool == TOOLS[8]:
+elif tool == TOOLS[9]:
     st.header("\U0001f524 Fix Encoding (Mojibake)")
     st.markdown("""
     **What it does:** Repairs garbled characters caused by encoding mismatches.
@@ -402,9 +494,132 @@ elif tool == TOOLS[8]:
         dl(result, "cleaned CSV", "encoding_fixed.csv")
 
 # ======================================================================
+# Formula Bar  ← NEW
+# ======================================================================
+elif tool == TOOLS[10]:
+    st.header("\u26a1 Formula Bar")
+    st.markdown("""
+    **What it does:** Type plain English commands to clean your data — no coding needed.
+
+    The built-in regex parser handles **15+ command patterns instantly for free**.
+    For complex or unusual requests, Gemini AI kicks in automatically.
+
+    **Examples:** `remove rows where email contains "test"` · `uppercase company` ·
+    `replace "UK" with "United Kingdom" in country` · `sort by last name a-z`
+    """)
+
+    # Sidebar: model override
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("\u26a1 Formula Bar Settings")
+    gemini_model = st.sidebar.selectbox(
+        "AI Model (for complex commands)",
+        ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
+        index=0, key="fb_gemini_model",
+        help="Only used when the regex parser can't understand your command",
+    )
+    st.sidebar.success("\u2705 AI fallback enabled (API key built in)")
+
+    fi = st.file_uploader("Upload CSV", type="csv", key="fb_upload")
+    if fi:
+        # Initialise session state
+        if "fb_df" not in st.session_state or st.session_state.get("fb_file_name") != fi.name:
+            st.session_state.fb_df = load_csv(fi)
+            st.session_state.fb_file_name = fi.name
+            st.session_state.fb_history = []
+            st.session_state.fb_undo_stack = []
+
+        current_df = st.session_state.fb_df
+
+        st.markdown(f"**{len(current_df):,}** rows \u00d7 **{len(current_df.columns)}** columns")
+        with st.expander("\U0001f4cb Preview data (first 10 rows)", expanded=False):
+            st.dataframe(current_df.head(10), use_container_width=True)
+
+        st.markdown("---")
+        command_text = st.text_input(
+            "\U0001f52e Type your command",
+            placeholder='e.g. remove rows where email contains "test"',
+            key="fb_command",
+        )
+
+        col_run, col_undo = st.columns([1, 1])
+        run_pressed = col_run.button("\u25b6\ufe0f Run", key="fb_run", type="primary", use_container_width=True)
+        undo_pressed = col_undo.button(
+            "\u21a9\ufe0f Undo last", key="fb_undo",
+            disabled=len(st.session_state.fb_undo_stack) == 0,
+            use_container_width=True,
+        )
+
+        # Undo
+        if undo_pressed and st.session_state.fb_undo_stack:
+            st.session_state.fb_df = st.session_state.fb_undo_stack.pop()
+            if st.session_state.fb_history:
+                undone = st.session_state.fb_history.pop()
+                st.success(f"\u21a9\ufe0f Undone: {undone[0]}")
+            else:
+                st.success("\u21a9\ufe0f Undone last command")
+            st.rerun()
+
+        # Run command
+        if run_pressed and command_text:
+            from utils.nl_parser import parse_command
+            from tools.formula_engine import execute_command
+
+            cmd = parse_command(command_text, list(current_df.columns), GEMINI_API_KEY)
+
+            if cmd.error:
+                st.error(cmd.error)
+            else:
+                source_label = "\U0001f9e0 AI" if cmd.source == "ai" else "\u26a1 Regex"
+                conf_pct = int(cmd.confidence * 100)
+                st.caption(f"Parsed by: **{source_label}** | Action: `{cmd.action}` | Confidence: {conf_pct}%")
+
+                result_df, description, rows_affected = execute_command(current_df, cmd)
+                st.markdown(description)
+
+                if cmd.action != "count":
+                    st.session_state.fb_undo_stack.append(current_df.copy())
+                    if len(st.session_state.fb_undo_stack) > 20:
+                        st.session_state.fb_undo_stack.pop(0)
+                    st.session_state.fb_df = result_df
+                    st.session_state.fb_history.append((command_text, description, rows_affected))
+
+                    if len(result_df) != len(current_df):
+                        delta = len(result_df) - len(current_df)
+                        mc1, mc2, mc3 = st.columns(3)
+                        mc1.metric("Before", f"{len(current_df):,}")
+                        mc2.metric("After", f"{len(result_df):,}")
+                        mc3.metric("Changed", f"{delta:+,}")
+
+                    st.dataframe(result_df.head(50), use_container_width=True)
+                    dl(result_df, "formula result", "formula_result.csv")
+
+        # Command history
+        if st.session_state.fb_history:
+            st.markdown("---")
+            with st.expander(f"\U0001f4dc Command History ({len(st.session_state.fb_history)} commands)", expanded=False):
+                for i, (cmd_text, desc, affected) in enumerate(reversed(st.session_state.fb_history), 1):
+                    step_num = len(st.session_state.fb_history) - i + 1
+                    st.markdown(f"**Step {step_num}:** `{cmd_text}`")
+                    st.caption(f"  {desc} ({affected:,} rows affected)")
+
+        # Example commands
+        st.markdown("---")
+        with st.expander("\U0001f4a1 Example Commands (no API key needed)", expanded=False):
+            from utils.nl_parser import EXAMPLE_COMMANDS
+            st.markdown("| Category | Command |")
+            st.markdown("|----------|---------|")
+            for category, example in EXAMPLE_COMMANDS:
+                st.markdown(f"| {category} | `{example}` |")
+            st.info(
+                "\U0001f4a1 **Tip:** These all work with the built-in regex parser — no API needed. "
+                "For more complex commands like 'remove all European contacts' or "
+                "'clean up the phone numbers', Gemini AI kicks in automatically."
+            )
+
+# ======================================================================
 # Full Data Migration
 # ======================================================================
-elif tool == TOOLS[9]:
+elif tool == TOOLS[11]:
     st.header("\U0001f504 Full Data Migration")
     st.markdown("""
     **What it does:** Transforms your raw data into a clean, ready-to-import format — all in one go.
@@ -424,12 +639,10 @@ elif tool == TOOLS[9]:
         src = load_csv(src_f)
         src_cols = list(src.columns)
 
-        # Step 1: Define output columns
         st.subheader("Step 1: Define your output columns")
         tgt_cols = get_target_columns("mig")
 
         if tgt_cols:
-            # Step 2: Map columns & fixed values
             st.subheader("Step 2: Map columns & set fixed values")
             st.caption("For each output column, choose a source column, set a fixed value, or leave empty.")
             with st.expander("\u26a0\ufe0f Fields you should NOT map (DNI guidance)"):
@@ -458,7 +671,6 @@ elif tool == TOOLS[9]:
                 elif choice != "-- Leave empty --":
                     mapping[tc] = choice
 
-            # Step 3: Conditional rules
             st.subheader("Step 3: Conditional rules (optional)")
             st.caption("Check your **source/input** columns, then write values into your **output** columns.")
             st.info("Example: IF source column 'STS26 Ticket Type' contains 'Attendee' THEN set output column 'GLOBAL_Previous event attendance' to ';Shoptalk Luxe 2026'")
@@ -470,30 +682,22 @@ elif tool == TOOLS[9]:
                 c1, c2, c3 = st.columns(3)
                 r_col = c1.selectbox("IF source column", src_cols, key=f"mig_rcol_{i}")
                 r_op = c2.selectbox("Operator", ["equals", "contains", "not_empty", "is_empty"], key=f"mig_rop_{i}")
-                r_val = c3.text_input("Value", key=f"mig_rval_{i}",
-                                      disabled=(r_op in ("not_empty", "is_empty")))
+                r_val = c3.text_input("Value", key=f"mig_rval_{i}", disabled=(r_op in ("not_empty", "is_empty")))
                 c4, c5 = st.columns(2)
                 r_out_col = c4.selectbox("THEN set output column", tgt_cols, key=f"mig_routcol_{i}")
                 r_out_val = c5.text_input("THEN value", key=f"mig_routval_{i}")
                 c6, c7 = st.columns(2)
                 r_else_val = c6.text_input("ELSE value (optional)", key=f"mig_relse_{i}")
                 r_mode = c7.selectbox("Write mode", [
-                    "Overwrite always",
-                    "Only fill blanks",
-                    "Append with semicolon (;value;value)"
+                    "Overwrite always", "Only fill blanks", "Append with semicolon (;value;value)"
                 ], key=f"mig_rmode_{i}")
-                mode_map = {
-                    "Overwrite always": "overwrite",
-                    "Only fill blanks": "fill_blank",
-                    "Append with semicolon (;value;value)": "append_semicolon",
-                }
+                mode_map = {"Overwrite always": "overwrite", "Only fill blanks": "fill_blank", "Append with semicolon (;value;value)": "append_semicolon"}
                 conditional_rules.append({
                     "col": r_col, "operator": r_op, "value": r_val,
                     "out_col": r_out_col, "out_val": r_out_val,
                     "else_val": r_else_val, "mode": mode_map[r_mode],
                 })
 
-            # Step 4: Auto-classify
             st.subheader("Step 4: Auto-classify (optional)")
             st.caption("Automatically add Seniority, Job Function, and Organisation Type columns.")
             classify = st.checkbox("Auto-classify seniority, function, and org type", value=True, key="mig_cls")
@@ -502,17 +706,10 @@ elif tool == TOOLS[9]:
                 title_col = st.selectbox("Which output column has job titles?", ["-- None --"] + tgt_cols, key="mig_tcol")
                 title_col = title_col if title_col != "-- None --" else None
 
-            # Step 5: Value mapping (replaces old rules-CSV standardisation)
             st.subheader("Step 5: Value mapping (optional)")
             st.caption("Reclassify values in any output column. Select columns to map, then define what each unique value should become.")
-
             mappable_cols = [tc for tc in tgt_cols if tc in mapping]
-            value_map_cols = st.multiselect(
-                "Which output columns do you want to remap values in?",
-                options=mappable_cols,
-                key="mig_vm_cols",
-            )
-
+            value_map_cols = st.multiselect("Which output columns do you want to remap values in?", options=mappable_cols, key="mig_vm_cols")
             value_mappings = {}
             for vm_col in value_map_cols:
                 src_col_name = mapping[vm_col]
@@ -520,7 +717,6 @@ elif tool == TOOLS[9]:
                 vc = col_data.value_counts().reset_index()
                 vc.columns = ["Original Value", "Count"]
                 vc = vc.sort_values("Original Value").reset_index(drop=True)
-
                 with st.expander(f"\U0001f3f7\ufe0f Map values for **{vm_col}** ({len(vc)} unique values from source column \"{src_col_name}\")"):
                     edit_df = vc.copy()
                     edit_df["Map To"] = ""
@@ -531,21 +727,17 @@ elif tool == TOOLS[9]:
                             "Count": st.column_config.NumberColumn("Count", disabled=True),
                             "Map To": st.column_config.TextColumn("Map To", help="New value. Leave blank to keep original."),
                         },
-                        hide_index=True,
-                        use_container_width=True,
-                        num_rows="fixed",
-                        key=f"mig_vm_{vm_col}",
+                        hide_index=True, use_container_width=True, num_rows="fixed", key=f"mig_vm_{vm_col}",
                     )
-                    col_mapping = {}
+                    col_mapping_inner = {}
                     for _, row in edited.iterrows():
                         map_to = str(row["Map To"]).strip()
                         if map_to and map_to != "nan":
-                            col_mapping[row["Original Value"]] = map_to
-                    if col_mapping:
-                        value_mappings[vm_col] = col_mapping
-                        st.success(f"{len(col_mapping)} value(s) will be remapped in **{vm_col}**")
+                            col_mapping_inner[row["Original Value"]] = map_to
+                    if col_mapping_inner:
+                        value_mappings[vm_col] = col_mapping_inner
+                        st.success(f"{len(col_mapping_inner)} value(s) will be remapped in **{vm_col}**")
 
-            # Step 6: Suppression split
             st.subheader("Step 6: Suppression split (optional)")
             st.caption("Separate opt-outs, unsubscribes, or other exclusions into a different file so they're not mixed into your normal import.")
             num_sup = st.number_input("Number of suppression rules", 0, 10, 0, key="mig_nsup")
@@ -554,39 +746,25 @@ elif tool == TOOLS[9]:
                 sc1, sc2, sc3 = st.columns(3)
                 s_col = sc1.selectbox(f"Suppression column {i+1}", tgt_cols, key=f"mig_supcol_{i}")
                 s_op = sc2.selectbox(f"Operator {i+1}", ["equals", "contains", "not_empty"], key=f"mig_supop_{i}")
-                s_val = sc3.text_input(f"Value {i+1}", key=f"mig_supval_{i}",
-                                       disabled=(s_op == "not_empty"))
+                s_val = sc3.text_input(f"Value {i+1}", key=f"mig_supval_{i}", disabled=(s_op == "not_empty"))
                 suppression_rules.append({"col": s_col, "operator": s_op, "value": s_val})
 
-            # Step 7: Column cleanup
             st.subheader("Step 7: Column cleanup (optional)")
             st.caption("Drop unwanted columns from the final output — useful for removing classification columns, intermediate fields, or anything your import doesn't need.")
-            cleanup_mode = st.radio(
-                "Cleanup mode:",
-                ["Remove selected columns", "Keep only selected columns"],
-                horizontal=True,
-                key="mig_cleanup_mode",
-            )
+            cleanup_mode = st.radio("Cleanup mode:", ["Remove selected columns", "Keep only selected columns"], horizontal=True, key="mig_cleanup_mode")
 
-            # RUN
             if st.button("\U0001f680 Run Migration", key="mig_run"):
                 from tools.data_migration import run_migration
                 result, suppressed, std_report, rule_applied, rule_skipped, summary = run_migration(
                     src, tgt_cols, mapping, defaults, conditional_rules,
                     classify, title_col, [], suppression_rules)
-
-                # Apply value mappings (Step 5)
                 for vm_col, vm_map in value_mappings.items():
                     if vm_col in result.columns:
                         result[vm_col] = (
-                            result[vm_col]
-                            .fillna("(blank)")
-                            .astype(str)
+                            result[vm_col].fillna("(blank)").astype(str)
                             .map(lambda v, m=vm_map: m.get(v, v))
                             .replace("(blank)", pd.NA)
                         )
-
-                # Store pre-cleanup result for column selection
                 st.session_state["mig_result_raw"] = result.copy()
                 st.session_state["mig_suppressed"] = suppressed
                 st.session_state["mig_std_report"] = std_report
@@ -599,7 +777,6 @@ elif tool == TOOLS[9]:
                 st.session_state["mig_tgt_cols"] = tgt_cols
                 st.session_state["mig_ran"] = True
 
-            # Display results (after run)
             if st.session_state.get("mig_ran"):
                 result = st.session_state["mig_result_raw"].copy()
                 suppressed = st.session_state["mig_suppressed"]
@@ -614,26 +791,15 @@ elif tool == TOOLS[9]:
 
                 show_summary(summary)
 
-                # Step 7: Column cleanup UI (shown after results are available)
                 st.subheader("\U0001f9f9 Step 7: Column Cleanup")
                 all_result_cols = list(result.columns)
-
                 if cleanup_mode == "Remove selected columns":
-                    cols_to_remove = st.multiselect(
-                        "Select columns to **remove** from the final output:",
-                        options=all_result_cols,
-                        key="mig_cols_remove",
-                    )
+                    cols_to_remove = st.multiselect("Select columns to **remove** from the final output:", options=all_result_cols, key="mig_cols_remove")
                     if cols_to_remove:
                         result = result.drop(columns=cols_to_remove)
                         st.info(f"Removed {len(cols_to_remove)} column(s): {', '.join(cols_to_remove)}")
                 else:
-                    cols_to_keep = st.multiselect(
-                        "Select columns to **keep** in the final output (all others will be dropped):",
-                        options=all_result_cols,
-                        default=all_result_cols,
-                        key="mig_cols_keep",
-                    )
+                    cols_to_keep = st.multiselect("Select columns to **keep** in the final output (all others will be dropped):", options=all_result_cols, default=all_result_cols, key="mig_cols_keep")
                     if cols_to_keep and len(cols_to_keep) < len(all_result_cols):
                         removed_cols = [c for c in all_result_cols if c not in cols_to_keep]
                         result = result[cols_to_keep]
@@ -680,9 +846,9 @@ elif tool == TOOLS[9]:
                     st.error(f"\u26a0\ufe0f {len(rule_skipped)} conditional rule(s) were SKIPPED because columns were missing. Check the Migration Preview Report above.")
 
 # ======================================================================
-# Fuzzy Duplicate Finder
+# Fuzzy Duplicate Finder (with spinner + warning)
 # ======================================================================
-elif tool == TOOLS[10]:
+elif tool == TOOLS[12]:
     st.header("\U0001f501 Fuzzy Duplicate Finder")
     st.markdown("""
     **What it does:** Scans a column for near-duplicate values using fuzzy string matching.
@@ -698,9 +864,14 @@ elif tool == TOOLS[10]:
         df = load_csv(fi)
         col = st.selectbox("Column to match on", df.columns, key="ifd_col")
         threshold = st.slider("Match threshold %", 50, 100, 90, key="ifd_th")
+        uc = df[col].dropna().astype(str).str.strip().nunique()
+        st.caption(f"{len(df):,} rows, {uc:,} unique values")
+        if uc > 5000:
+            st.warning(f"\u26a0\ufe0f {uc:,} unique values — may take a while. Consider 95%+ threshold or exact dedup first.")
         if st.button("Find Duplicates", key="ifd_run"):
             from tools.dedupe_internal import dedupe_within_file
-            result, summary = dedupe_within_file(df, col, threshold)
+            with st.spinner("Finding duplicates..."):
+                result, summary = dedupe_within_file(df, col, threshold)
             show_summary(summary)
             st.dataframe(result.head(200))
             dl(result, "results with flags", "fuzzy_dedup.csv")
@@ -708,7 +879,7 @@ elif tool == TOOLS[10]:
 # ======================================================================
 # LinkedIn Search Links
 # ======================================================================
-elif tool == TOOLS[11]:
+elif tool == TOOLS[13]:
     st.header("\U0001f50e LinkedIn Search Links")
     st.markdown("""
     **What it does:** Generates a clickable LinkedIn people-search URL for each person.
@@ -734,7 +905,7 @@ elif tool == TOOLS[11]:
 # ======================================================================
 # Merge / Split Columns
 # ======================================================================
-elif tool == TOOLS[12]:
+elif tool == TOOLS[14]:
     st.header("\U0001f517 Merge / Split Columns")
     st.markdown("""
     **What it does:**
@@ -771,7 +942,7 @@ elif tool == TOOLS[12]:
 # ======================================================================
 # Remove by Keywords / Flag
 # ======================================================================
-elif tool == TOOLS[13]:
+elif tool == TOOLS[15]:
     st.header("\U0001f6ab Remove by Keywords / Flag")
     st.markdown("""
     **What it does:**
@@ -809,7 +980,7 @@ elif tool == TOOLS[13]:
 # ======================================================================
 # Remove Blank Rows
 # ======================================================================
-elif tool == TOOLS[14]:
+elif tool == TOOLS[16]:
     st.header("\U0001f9f9 Remove Blank Rows")
     st.markdown("""
     **What it does:** Deletes rows that are completely empty or whitespace-only.
@@ -826,30 +997,80 @@ elif tool == TOOLS[14]:
         dl(result, "cleaned", "no_blanks.csv")
 
 # ======================================================================
-# Standardise Names
+# Standardise Names (+ Email Extraction mode)
 # ======================================================================
-elif tool == TOOLS[15]:
+elif tool == TOOLS[17]:
     st.header("\U0001f464 Standardise Names")
     st.markdown("""
-    **What it does:** Splits a "Full Name" column into separate "First Name" and "Last Name".
+    **What it does:** Two modes:
+    - **Split full name:** Splits a "Full Name" column into "First Name" and "Last Name"
+    - **Extract from email:** Parses `john.smith@acme.com` into First: `John`, Last: `Smith`
 
     **Example:** `"Mary Jane Watson"` -> First: `"Mary"`, Last: `"Jane Watson"`
+    **Example:** `"john.smith@acme.com"` -> First: `"John"`, Last: `"Smith"`
     """)
     fi = st.file_uploader("Upload CSV", type="csv", key="sn")
     if fi:
         df = load_csv(fi)
-        col = st.selectbox("Full name column", df.columns, key="sn_col")
-        if st.button("Split Names", key="sn_run"):
-            from tools.standardize_data import standardize_names
-            result = standardize_names(df, col)
-            st.success(f"Split {len(result):,} names")
-            st.dataframe(result.head(100))
-            dl(result, "with split names", "names_split.csv")
+        mode = st.radio("Mode", ["Split a full name column", "Extract names from email addresses"], key="sn_mode")
+
+        if mode.startswith("Split"):
+            col = st.selectbox("Full name column", df.columns, key="sn_col")
+            if st.button("Split Names", key="sn_run"):
+                from tools.standardize_data import standardize_names
+                result = standardize_names(df, col)
+                st.success(f"Split {len(result):,} names")
+                st.dataframe(result.head(100))
+                dl(result, "with split names", "names_split.csv")
+        else:
+            email_col = st.selectbox("Email column", df.columns, key="sn_ecol")
+            overwrite = st.radio("If First/Last Name columns already exist:", ["Only fill blanks", "Overwrite everything"], key="sn_ow")
+            if st.button("Extract Names", key="sn_erun"):
+                result = df.copy()
+                fn_list, ln_list, dom_list = [], [], []
+                for email in result[email_col].fillna("").astype(str):
+                    email = email.strip().lower()
+                    if "@" not in email:
+                        fn_list.append(""); ln_list.append(""); dom_list.append(""); continue
+                    local, domain = email.rsplit("@", 1)
+                    dom_list.append(domain)
+                    parts = re.split(r'[._\-]', local)
+                    parts = [p.strip() for p in parts if p.strip()]
+                    if len(parts) == 0:
+                        fn_list.append(""); ln_list.append("")
+                    elif len(parts) == 1:
+                        fn_list.append(parts[0].title()); ln_list.append("")
+                    elif len(parts) == 2:
+                        fn_list.append(parts[0].title()); ln_list.append(parts[1].title())
+                    else:
+                        fn_list.append(parts[0].title()); ln_list.append(" ".join(p.title() for p in parts[1:]))
+
+                for c in ["First Name", "Last Name", "Email Domain"]:
+                    if c not in result.columns:
+                        result[c] = ""
+
+                if overwrite.startswith("Only"):
+                    for i in range(len(result)):
+                        if str(result.at[result.index[i], "First Name"]).strip() == "":
+                            result.at[result.index[i], "First Name"] = fn_list[i]
+                        if str(result.at[result.index[i], "Last Name"]).strip() == "":
+                            result.at[result.index[i], "Last Name"] = ln_list[i]
+                        if str(result.at[result.index[i], "Email Domain"]).strip() == "":
+                            result.at[result.index[i], "Email Domain"] = dom_list[i]
+                else:
+                    result["First Name"] = fn_list
+                    result["Last Name"] = ln_list
+                    result["Email Domain"] = dom_list
+
+                ext = sum(1 for f in fn_list if f)
+                st.success(f"Extracted from {ext:,} of {len(result):,} emails")
+                st.dataframe(result.head(100))
+                dl(result, "extracted names", "email_names_extracted.csv")
 
 # ======================================================================
 # Standardise Phone Numbers
 # ======================================================================
-elif tool == TOOLS[16]:
+elif tool == TOOLS[18]:
     st.header("\U0001f4de Standardise Phone Numbers")
     st.markdown("""
     **What it does:** Strips all formatting, keeping only digits and `+`.
@@ -870,7 +1091,7 @@ elif tool == TOOLS[16]:
 # ======================================================================
 # Standardise URLs
 # ======================================================================
-elif tool == TOOLS[17]:
+elif tool == TOOLS[19]:
     st.header("\U0001f517 Standardise URLs")
     st.markdown("""
     **What it does:** Normalises URLs by removing `http://`, `https://`, `www.`, trailing slashes.
@@ -893,21 +1114,20 @@ elif tool == TOOLS[17]:
 # ======================================================================
 # Value Classifier
 # ======================================================================
-elif tool == TOOLS[18]:
+elif tool == TOOLS[20]:
     from tools.value_classifier import render_value_classifier
     render_value_classifier()
 
 # ======================================================================
-# Value Standardiser
+# Value Standardiser (+ Find & Replace + Case Converter)
 # ======================================================================
-elif tool == TOOLS[19]:
+elif tool == TOOLS[21]:
     st.header("\U0001f3af Value Standardiser")
     st.markdown("""
-    **What it does:** Matches raw, messy values against a list of standard terms you define.
-    Uses three strategies in order:
-    1. **Exact match** (case-insensitive) -> 100%
-    2. **Keyword match** (alias found inside raw value) -> 90%
-    3. **Fuzzy match** (Levenshtein similarity) -> configurable threshold
+    **What it does:** Three modes:
+    1. **Rules CSV** — Match messy values against standard terms using exact, keyword, and fuzzy matching
+    2. **Find & Replace** — Simple find/replace across one or more columns
+    3. **Case Converter** — Convert columns to Title Case, UPPER, lower, or Sentence case
 
     **How to set up your rules CSV:**
 
@@ -919,23 +1139,87 @@ elif tool == TOOLS[19]:
 
     The "Aliases" column is optional but dramatically improves matching.
     """)
-    data_f = st.file_uploader("Upload DATA CSV (your messy data)", type="csv", key="vs_data")
-    rules_f = st.file_uploader("Upload RULES CSV (your standards + aliases)", type="csv", key="vs_rules")
-    if data_f and rules_f:
-        data_df = load_csv(data_f); rules_df = load_csv(rules_f)
-        col = st.selectbox("Column to standardise", data_df.columns, key="vs_col")
-        std_col = st.selectbox("Standard value column (in rules CSV)", rules_df.columns, key="vs_std")
-        alias_options = ["-- None --"] + list(rules_df.columns)
-        alias_col = st.selectbox("Aliases column (optional but recommended)", alias_options, key="vs_alias")
-        threshold = st.slider("Fuzzy match threshold % (lower = more lenient)", 50, 100, 80, key="vs_th")
-        if st.button("Standardise", key="vs_run"):
-            from tools.value_standardizer import standardize_values
-            ac = alias_col if alias_col != "-- None --" else None
-            result, report, summary = standardize_values(data_df, col, rules_df, std_col, ac, threshold)
-            show_summary(summary)
-            st.subheader("Standardised Data")
-            st.dataframe(result.head(100))
-            dl(result, "standardised CSV", "standardised.csv")
-            st.subheader("Match Report (how each unique value was matched)")
-            st.dataframe(report)
-            dl(report, "match report", "match_report.csv")
+
+    mode = st.radio("Mode", ["Standardise with rules CSV", "Find & Replace", "Case Converter"], key="vs_mode")
+
+    if mode.startswith("Standardise"):
+        data_f = st.file_uploader("Upload DATA CSV (your messy data)", type="csv", key="vs_data")
+        rules_f = st.file_uploader("Upload RULES CSV (your standards + aliases)", type="csv", key="vs_rules")
+        if data_f and rules_f:
+            data_df = load_csv(data_f); rules_df = load_csv(rules_f)
+            col = st.selectbox("Column to standardise", data_df.columns, key="vs_col")
+            std_col = st.selectbox("Standard value column (in rules CSV)", rules_df.columns, key="vs_std")
+            alias_options = ["-- None --"] + list(rules_df.columns)
+            alias_col = st.selectbox("Aliases column (optional but recommended)", alias_options, key="vs_alias")
+            threshold = st.slider("Fuzzy match threshold % (lower = more lenient)", 50, 100, 80, key="vs_th")
+            if st.button("Standardise", key="vs_run"):
+                from tools.value_standardizer import standardize_values
+                ac = alias_col if alias_col != "-- None --" else None
+                result, report, summary = standardize_values(data_df, col, rules_df, std_col, ac, threshold)
+                show_summary(summary)
+                st.subheader("Standardised Data")
+                st.dataframe(result.head(100))
+                dl(result, "standardised CSV", "standardised.csv")
+                st.subheader("Match Report (how each unique value was matched)")
+                st.dataframe(report)
+                dl(report, "match report", "match_report.csv")
+
+    elif mode.startswith("Find"):
+        data_f = st.file_uploader("Upload CSV", type="csv", key="fr_data")
+        if data_f:
+            data_df = load_csv(data_f)
+            fr_cols = st.multiselect("Columns to search", data_df.columns, default=list(data_df.columns), key="fr_cols")
+            match_mode = st.radio("Match mode", ["Contains (replace within text)", "Exact match (whole cell only)"], key="fr_match")
+            case_sensitive = st.checkbox("Case sensitive", value=False, key="fr_case")
+            num_pairs = st.number_input("Number of find/replace pairs", 1, 50, 1, key="fr_num")
+            pairs = []
+            for i in range(int(num_pairs)):
+                a, b = st.columns(2)
+                ft = a.text_input(f"Find {i+1}", key=f"fr_find_{i}")
+                rt = b.text_input(f"Replace {i+1}", key=f"fr_replace_{i}")
+                if ft:
+                    pairs.append((ft, rt))
+            if pairs and fr_cols and st.button("Run Find & Replace", key="fr_run"):
+                result = data_df.copy()
+                total = 0
+                for cn in fr_cols:
+                    series = result[cn].fillna("").astype(str)
+                    for ft, rt in pairs:
+                        if match_mode.startswith("Contains"):
+                            if case_sensitive:
+                                total += int(series.str.contains(ft, regex=False, na=False).sum())
+                                series = series.str.replace(ft, rt, regex=False)
+                            else:
+                                total += int(series.str.contains(ft, case=False, regex=False, na=False).sum())
+                                pat = re.compile(re.escape(ft), re.IGNORECASE)
+                                series = series.apply(lambda x, p=pat, r=rt: p.sub(r, x))
+                        else:
+                            mask = (series == ft) if case_sensitive else (series.str.lower() == ft.lower())
+                            total += int(mask.sum())
+                            series = series.where(~mask, rt)
+                    result[cn] = series
+                st.success(f"{total:,} replacements across {len(fr_cols)} column(s)")
+                st.dataframe(result.head(100))
+                dl(result, "replaced", "find_replace_result.csv")
+
+    else:  # Case Converter
+        data_f = st.file_uploader("Upload CSV", type="csv", key="cc_data")
+        if data_f:
+            data_df = load_csv(data_f)
+            cc_cols = st.multiselect("Columns to convert", data_df.columns, key="cc_cols")
+            case_choice = st.selectbox("Convert to", ["Title Case", "UPPER CASE", "lower case", "Sentence case"], key="cc_case")
+            if cc_cols and st.button("Convert", key="cc_run"):
+                result = data_df.copy()
+                for c in cc_cols:
+                    s = result[c].fillna("").astype(str)
+                    if case_choice == "Title Case":
+                        result[c] = s.str.title()
+                    elif case_choice == "UPPER CASE":
+                        result[c] = s.str.upper()
+                    elif case_choice == "lower case":
+                        result[c] = s.str.lower()
+                    elif case_choice == "Sentence case":
+                        result[c] = s.apply(lambda x: ". ".join(p.strip().capitalize() for p in x.split(".") if p.strip()) if x else x)
+                st.success(f"Converted {len(cc_cols)} column(s) to {case_choice}")
+                st.dataframe(result.head(100))
+                dl(result, "converted", "case_converted.csv")

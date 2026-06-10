@@ -1,0 +1,47 @@
+"""Tests for the classifiers module."""
+import pytest
+from utils.classifiers import classify_seniority, classify_job_function, classify_org_type
+
+class TestClassifySeniority:
+    def test_ceo_is_clevel(self): assert classify_seniority("Chief Executive Officer") == "C-level"
+    def test_cfo_is_clevel(self): assert classify_seniority("CFO") == "C-level"
+    def test_founder_is_clevel(self): assert classify_seniority("Co-Founder & CEO") == "C-level"
+    def test_vp_before_clevel(self): assert classify_seniority("Vice President of Sales") == "VP level"
+    def test_svp_is_vp(self): assert classify_seniority("SVP Engineering") == "VP level"
+    def test_director(self): assert classify_seniority("Director of Marketing") == "Director"
+    def test_head_of(self): assert classify_seniority("Head of Data Science") == "Director"
+    def test_manager(self): assert classify_seniority("Marketing Manager") == "Manager"
+    def test_team_lead(self): assert classify_seniority("Team Lead, Engineering") == "Manager"
+    def test_analyst(self): assert classify_seniority("Business Analyst") == "Associate"
+    def test_intern(self): assert classify_seniority("Marketing Intern") == "Associate"
+    def test_other(self): assert classify_seniority("Janitor") == "Other"
+    def test_empty(self): assert classify_seniority("") == "Other"
+    def test_original_preserved(self): assert classify_seniority("CEO", "VP level") == "VP level"
+    def test_french_director(self): assert classify_seniority("Directeur Commercial") == "Director"
+    def test_managing_director(self): assert classify_seniority("Managing Director") == "C-level"
+
+class TestClassifyJobFunction:
+    def test_sales(self): assert classify_job_function("Account Executive") == "Sales"
+    def test_marketing(self): assert classify_job_function("Digital Marketing Manager") == "Marketing"
+    def test_engineering(self): assert classify_job_function("Software Engineer") == "Engineering"
+    def test_finance(self): assert classify_job_function("Financial Controller") == "Finance"
+    def test_legal(self): assert classify_job_function("General Counsel") == "Legal"
+    def test_hr(self): assert classify_job_function("Head of Talent Acquisition") == "HR"
+    def test_operations(self): assert classify_job_function("Supply Chain Director") == "Operations"
+    def test_product(self): assert classify_job_function("Product Manager") == "Product"
+    def test_it(self): assert classify_job_function("IT Infrastructure Manager") == "IT"
+    def test_dept_fallback(self): assert classify_job_function("Manager", "Sales") == "Sales"
+    def test_other(self): assert classify_job_function("Chief of Staff") == "Other"
+    def test_empty(self): assert classify_job_function("") == "Other"
+
+class TestClassifyOrgType:
+    def test_bank(self): assert classify_org_type(industries="Banking") == "Bank"
+    def test_fintech(self): assert classify_org_type(company="Stripe Payments") == "Fintech"
+    def test_insurance(self): assert classify_org_type(industries="Insurance") == "Insurance"
+    def test_vcpe(self): assert classify_org_type(industries="Venture Capital") == "VC/PE"
+    def test_retailer(self): assert classify_org_type(industries="Retail") == "Retailer"
+    def test_government(self): assert classify_org_type(company="Ministry of Finance") == "Government"
+    def test_technology(self): assert classify_org_type(industries="Software") == "Technology"
+    def test_consultant(self): assert classify_org_type(industries="Consulting") == "Consultant"
+    def test_other(self): assert classify_org_type(company="Random Co") == "Other"
+    def test_empty(self): assert classify_org_type() == "Other"
