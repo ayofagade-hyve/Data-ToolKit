@@ -565,7 +565,9 @@ elif tool == TOOLS[10]:
             from utils.nl_parser import parse_command
             from tools.formula_engine import execute_command
 
-            cmd = parse_command(command_text, list(current_df.columns), GEMINI_API_KEY)
+            AI_API_KEY = "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"
+            AI_PROVIDER = "groq"
+            AI_MODEL = "llama-3.3-70b-versatile"
 
             if cmd.error:
                 st.error(cmd.error)
