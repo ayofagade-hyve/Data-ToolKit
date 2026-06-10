@@ -7,9 +7,10 @@ from utils.io_helpers import load_csv, to_csv_bytes, generate_summary
 
 st.set_page_config(page_title="Data Cleaning Toolkit", page_icon="\U0001f9f9", layout="wide")
 
-# Hard-coded Gemini API key for Formula Bar
-GEMINI_API_KEY = "AQ.Ab8RN6LN6DtVegYa1_19KiwnVYkG7Krn8bl6efmnz-dFVthPWQ"
-GEMINI_MODEL = "gemini-2.0-flash"
+# Groq API key (free, 1000 req/day)
+AI_API_KEY = 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
+AI_PROVIDER = "groq"
+AI_MODEL = "llama-3.3-70b-versatile"
 
 TOOLS = [
     "\U0001f3e0 Home",
